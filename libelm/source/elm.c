@@ -644,11 +644,11 @@ WCHAR ff_convert(WCHAR src, UINT dir)
 int ELM_Mount(void)
 {
     int ret = 0;
-    if (f_mount(&(_elm[0]), ELM_FC, 1) != FR_OK)
+    if (f_mount(&(_elm[0]), "fat:", 1) != FR_OK)
     {
         ret |= 1;
     }
-    if (f_mount(&(_elm[1]), ELM_SD, 1) != FR_OK)
+    if (f_mount(&(_elm[1]), "sd:", 1) != FR_OK)
     {
         ret |= 2;
     }
@@ -754,7 +754,7 @@ int ELM_SectorsPerClusterFromHandle(int fildes, uint32_t *per)
 }
 
 DWORD get_fat(FATFS *fs, DWORD clst);
-DWORD clust2sect(FATFS *fs, DWORD clst);
+DWORD clst2sect(FATFS *fs, DWORD clst);
 
 uint32_t ELM_GetFAT(int fildes, uint32_t cluster, uint32_t *sector)
 {
@@ -776,7 +776,7 @@ uint32_t ELM_GetFAT(int fildes, uint32_t cluster, uint32_t *sector)
                 result = 0;
         }
         if (sector && result)
-            *sector = clust2sect(fd->obj.fs, result);
+            *sector = clst2sect(fd->obj.fs, result);
     }
     return result;
 }
