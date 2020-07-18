@@ -225,14 +225,18 @@ DRESULT disk_ioctl(
 	void *buff /* Buffer to send/receive control data */
 )
 {
-	if (drv == FC && ctrl == CTRL_SYNC)
+	if (!fc && drv == FC) return RES_NOTRDY;
+	if (!sd && drv == SD) return RES_NOTRDY;
+
+	if (fc && drv == FC && ctrl == CTRL_SYNC)
 	{
 		return fc->clearStatus() ? RES_OK : RES_ERROR;
 	}
-	if (drv == SD && ctrl == CTRL_SYNC)
+	if (sd && drv == SD && ctrl == CTRL_SYNC)
 	{
-		return fc->clearStatus() ? RES_OK : RES_ERROR;
+		return sd->clearStatus() ? RES_OK : RES_ERROR;
 	}
+	
 	return RES_PARERR;
 }
 
