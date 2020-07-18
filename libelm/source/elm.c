@@ -636,11 +636,6 @@ WCHAR ff_convert(WCHAR src, UINT dir)
     return src;
 }
 
-// DWORD ff_wtoupper(DWORD chr)
-// {
-//     return towupper(chr);
-// }
-
 int ELM_Mount(void)
 {
     int ret = 0;
@@ -674,8 +669,8 @@ void ELM_Unmount(void)
 {
     RemoveDevice("fat:");
     RemoveDevice("sd:");
-    f_mount(NULL, ELM_FC, 1);
-    f_mount(NULL, ELM_SD, 1);
+    f_mount(NULL, "fat:", 1);
+    f_mount(NULL, "sd:", 1);
 }
 
 int ELM_ClusterSizeFromDisk(int disk, uint32_t *size)
@@ -751,34 +746,6 @@ int ELM_SectorsPerClusterFromHandle(int fildes, uint32_t *per)
         return true;
     }
     return false;
-}
-
-DWORD get_fat(FATFS *fs, DWORD clst);
-DWORD clst2sect(FATFS *fs, DWORD clst);
-
-uint32_t ELM_GetFAT(int fildes, uint32_t cluster, uint32_t *sector)
-{
-    uint32_t result = 0;
-    __handle *handle = __get_handle(fildes);
-    if (sector)
-        *sector = 0;
-    if (handle)
-    {
-        FIL *fd = (FIL *)handle->fileStruct;
-        if (cluster == 1)
-        {
-            result = fd->obj.sclust;
-        }
-        else
-        {
-            result = get_fat(fd->obj.fs, cluster);
-            if (result < 2 || result >= fd->obj.fs->n_fatent)
-                result = 0;
-        }
-        if (sector && result)
-            *sector = clst2sect(fd->obj.fs, result);
-    }
-    return result;
 }
 
 int ELM_DirEntry(int fildes, uint64_t *entry)

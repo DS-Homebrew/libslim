@@ -45,7 +45,6 @@ extern "C"
   int ELM_ClustersFromDisk(int disk, uint32_t *clusters);
   int ELM_FreeClustersFromDisk(int disk, uint32_t *clusters);
   int ELM_SectorsFromDisk(int disk, uint32_t *sectors);
-  uint32_t ELM_GetFAT(int fildes, uint32_t cluster, uint32_t *sector);
   int ELM_DirEntry(int fildes, uint64_t *entry);
 
 #ifdef __cplusplus
