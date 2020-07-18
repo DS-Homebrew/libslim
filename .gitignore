@@ -2,3 +2,5 @@
 *.a
 *.o
 *.map
+*.elf
+*.nds

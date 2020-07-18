@@ -18,9 +18,9 @@ include $(DEVKITARM)/ds_rules
 #---------------------------------------------------------------------------------
 TARGET		:=	$(shell basename $(CURDIR))
 BUILD		:=	build
-SOURCES		:=	source libelm/source
+SOURCES		:=	source
 DATA		:=	data  
-INCLUDES	:=	include libelm/include 
+INCLUDES	:=	include
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -41,14 +41,14 @@ LDFLAGS	=	-specs=ds_arm9.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project (order is important)
 #---------------------------------------------------------------------------------
-LIBS	:= 	-lnds9
+LIBS	:= 	-lelm -lnds9
  
  
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
 # include and lib
 #---------------------------------------------------------------------------------
-LIBDIRS	:=	$(LIBNDS)
+LIBDIRS	:=	$(LIBELM) $(LIBNDS)
  
 #---------------------------------------------------------------------------------
 # no real need to edit anything past this point unless you need to add additional
@@ -93,10 +93,10 @@ export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
  
 export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
  
-.PHONY: $(BUILD) clean
+.PHONY: $(BUILD) libelm clean
  
 #---------------------------------------------------------------------------------
-$(BUILD):
+$(BUILD): libelm
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
  
@@ -104,6 +104,7 @@ $(BUILD):
 clean:
 	@echo clean ...
 	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).nds
+	@rm -fr $(LIBELM)/lib
 
 #---------------------------------------------------------------------------------
 else
@@ -125,3 +126,9 @@ $(OUTPUT).elf	:	$(OFILES)
 #---------------------------------------------------------------------------------------
 endif
 #---------------------------------------------------------------------------------------
+
+libelm: $(LIBELM)/lib/libelm.a
+
+$(LIBELM)/lib/libelm.a:
+	mkdir -p $(LIBELM)/lib
+	cd $(LIBELM) && $(MAKE)

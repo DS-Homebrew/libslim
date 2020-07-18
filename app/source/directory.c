@@ -5,7 +5,7 @@
 #include <string.h>
 #include <dirent.h>
 
-#include <elf.h>
+#include <elm.h>
 
 //---------------------------------------------------------------------------------
 int main(int argc, char **argv)
@@ -15,13 +15,12 @@ int main(int argc, char **argv)
 	// Initialise the console, required for printf
 	consoleDemoInit();
 
-	if (ELM_Mount())
+	if (!ELM_Mount())
 	{
-
 		DIR *pdir;
 		struct dirent *pent;
 
-		pdir = opendir("/");
+		pdir = opendir("sd:/");
 
 		if (pdir)
 		{
@@ -41,6 +40,32 @@ int main(int argc, char **argv)
 		{
 			iprintf("opendir() failure; terminating\n");
 		}
+
+		iprintf("testing write...\n");
+		FILE* ftest = fopen("sd:/test_a.txt", "w");
+		if (ftest) {
+			iprintf("open ok!\n");
+			fputs("Hello World from FatFs!", ftest);
+			iprintf("puts ok!\n");
+			fclose(ftest);
+			iprintf("test ok!\n");
+		} else {
+			iprintf("open failed!");
+		}
+
+		iprintf("testing read...\n");
+		FILE* ftest_r = fopen("sd:/test_a.txt", "rb");
+		char testbuf[256] = {0};
+		if (ftest_r) {
+			int read = fread(testbuf, 1, 256, ftest_r);
+			printf("read %d bytes\n", read);
+			printf("result: %s\n", testbuf);
+			fclose(ftest_r);
+			iprintf("test ok!\n");
+		} else {
+			iprintf("open failed!");
+		}
+
 	}
 	else
 	{

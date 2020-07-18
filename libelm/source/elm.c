@@ -639,10 +639,10 @@ WCHAR ff_convert(WCHAR src, UINT dir)
 int ELM_Mount(void)
 {
     int ret = 0;
-    if (f_mount(&(_elm[0]), "fat:", 1) != FR_OK)
-    {
-        ret |= 1;
-    }
+    // if (f_mount(&(_elm[0]), "fat:", 1) != FR_OK)
+    // {
+    //     ret |= 1;
+    // }
     if (f_mount(&(_elm[1]), "sd:", 1) != FR_OK)
     {
         ret |= 2;
@@ -651,11 +651,11 @@ int ELM_Mount(void)
     {
         return ret;
     }
-    if (!(ret & 1))
-    {
-        _ELM_chk_mounted(0);
-        AddDevice(&dotab_elm0);
-    }
+    // if (!(ret & 1))
+    // {
+    //     _ELM_chk_mounted(0);
+    //     AddDevice(&dotab_elm0);
+    // }
     if (!(ret & 2))
     {
         _ELM_chk_mounted(1);
