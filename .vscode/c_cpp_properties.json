@@ -1,0 +1,23 @@
+{
+    "configurations": [
+        {
+            "name": "arm-eabi-none",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "C:/devkitPro/devkitARM/arm-none-eabi/include/**",
+                "C:/devkitPro/libnds/include/**",
+                "${workspaceFolder}/libelm/source/fatfs"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "compilerPath": "C:/devkitPro/devkitARM/bin/arm-none-eabi-gcc.exe",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "gcc-arm"
+        }
+    ],
+    "version": 4
+}
