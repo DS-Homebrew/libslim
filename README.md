@@ -1,13 +1,14 @@
-# libelm2
+# libslim
 
-A revival of LibELM for use with the Nintendo DS, based off modern FatFS.
+A revival of libELM for use with the Nintendo DS, based off modern FatFS.
 
-libelm2 aims to be a lightweight drop-in compatible with libfat in the common modern use case and provides only 2 stdio devices instead of libfat
+libslim aims to be a lightweight drop-in compatible with libfat in the common modern use case and provides only 2 stdio devices instead of libfat
 
   * `fat:` for the SLOT-1 flashcart device
   * `sd:` for the TWL-mode SD card
 
-It provides a restricted subset of libfat's API for the common use case.
+It provides a restricted subset of libfat's API for the common use case. libelm2 does not support the low-level ELM API
+used by WoodRPG 1.25.
 
 ```c
 /**
@@ -51,6 +52,13 @@ int FAT_getAttr(const char *file);
 int FAT_setAttr(const char *file, uint8_t attr);
 ```
 
+# Usage
+
+libslim is not compatible with libfat.
+
+1. In your Makefile, link against `lslim` instead of `lfat`. This must come before `lnds9`.
+2. Include `<slim.h>` instead of `<fat.h>`.
+
 # Third Party Licenses
 
 This work is an amalgamation of works by multiple people over several years. Unless otherwise indicated, 
@@ -58,7 +66,7 @@ this work is licensed under a 3-clause BSD license as provided in LICENSE.
 
 Licenses of component works are provided below.
 
-## libelm by yellowoodgoblin
+## libELM by yellowoodgoblin
 ```
 Copyright (c) 2009-2011, yellow wood goblin
 All rights reserved.

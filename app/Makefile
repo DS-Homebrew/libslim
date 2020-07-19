@@ -5,7 +5,7 @@
 ifeq ($(strip $(DEVKITARM)),)
 $(error "Please set DEVKITARM in your environment. export DEVKITARM=<path to>devkitARM")
 endif
-export LIBELM  		:=	$(CURDIR)/../libelm
+export LIBSLIM  		:=	$(CURDIR)/../libslim
 
 include $(DEVKITARM)/ds_rules
 
@@ -41,14 +41,14 @@ LDFLAGS	=	-specs=ds_arm9.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project (order is important)
 #---------------------------------------------------------------------------------
-LIBS	:= 	-lelm -lnds9
+LIBS	:= 	-lslim -lnds9
  
  
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
 # include and lib
 #---------------------------------------------------------------------------------
-LIBDIRS	:=	$(LIBELM) $(LIBNDS)
+LIBDIRS	:=	$(LIBSLIM) $(LIBNDS)
  
 #---------------------------------------------------------------------------------
 # no real need to edit anything past this point unless you need to add additional
@@ -93,10 +93,10 @@ export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
  
 export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
  
-.PHONY: $(BUILD) libelm clean
+.PHONY: $(BUILD) libslim clean
  
 #---------------------------------------------------------------------------------
-$(BUILD): libelm
+$(BUILD): libslim
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
  
@@ -127,8 +127,8 @@ $(OUTPUT).elf	:	$(OFILES)
 endif
 #---------------------------------------------------------------------------------------
 
-libelm: $(LIBELM)/lib/libelm.a
+libslim: $(LIBSLIM)/lib/libslim.a
 
-$(LIBELM)/lib/libelm.a:
-	mkdir -p $(LIBELM)/lib
-	cd $(LIBELM) && $(MAKE)
+$(LIBSLIM)/lib/libslim.a:
+	mkdir -p $(LIBSLIM)/lib
+	cd $(LIBSLIM) && $(MAKE)
