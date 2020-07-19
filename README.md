@@ -43,12 +43,12 @@ void fatGetVolumeLabel(const char* mount, char *label);
 /**
  * Gets the given FAT attributes for the file.
  */
-int	FAT_getAttr(const char *file);
+int FAT_getAttr(const char *file);
 
 /**
  * Sets the FAT attributes
  */
-int	FAT_setAttr(const char *file, uint8_t attr);
+int FAT_setAttr(const char *file, uint8_t attr);
 ```
 
 # Third Party Licenses
