@@ -36,10 +36,51 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern "C"
 {
 #endif
+  /**
+   * Initializes the given mount point with the provided DISC_INTERFACE
+   * 
+   * - `mount` must be either "sd:" or "fat:". Unlike libfat, this function does not
+   * support other mount points.
+   */
   bool fatMountSimple(const char *mount, const DISC_INTERFACE *interface);
+
+  /**
+   * Unmounts the given mount point, attempting to flush any open files.
+   * 
+   * Unlike libfat where this is a void function, 
+   * this function returns true on success.
+   */
   bool fatUnmount(const char *mount);
+
+  /**
+   * Initializes SD card in sd:/ and SLOT-1 flashcart device in fat:/ with the default
+   * DISC_INTERFACE, then sets the default directory to sd:/ if available, or 
+   * fat:/ otherwise, and then changes directory according to argv.
+   * 
+   * Returns true if either sd:/ or fat:/ is successfully mounted, and false otherwise.
+   */
   bool fatInitDefault(void);
+
+  /**
+   * Initializes SD card in sd:/ and SLOT-1 flashcart device in fat:/ with the default
+   * DISC_INTERFACE, then sets the default directory to sd:/ if available, or 
+   * fat:/ otherwise, and then changes directory according to argv if setArgvMagic 
+   * is true.
+   * 
+   * This method differs significantly from its equivalent libfat API.
+   * 
+   * Returns true if either sd:/ or fat:/ is successfully mounted, and false otherwise.
+   */
   bool fatInit(bool setArgvMagic);
+
+  /**
+   * Gets the volume label of the given mount point.
+   * 
+   * - `mount` must be either "sd:" or "fat:". Unlike libfat, this function does not
+   * support other mount points.
+   */
+  void fatGetVolumeLabel(const char *mount, char *label);
+
 #ifdef __cplusplus
 }
 #endif

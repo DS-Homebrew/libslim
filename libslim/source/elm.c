@@ -24,7 +24,6 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#define ARGV_SUPPORT
 
 #include <sys/iosupport.h>
 #include <sys/errno.h>
@@ -43,11 +42,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <diskio.h>
 #include <slim.h>
 #include <ffvolumes.h>
-
-#ifdef ARGV_SUPPORT
-#include <nds/system.h>
-#include <strings.h>
-#endif
 
 #include <nds/debug.h>
 
@@ -665,6 +659,7 @@ WCHAR ff_convert(WCHAR src, UINT dir)
     return src;
 }
 
+// This has to be here for _ELM_chk_mounted.
 bool fatMountSimple(const char *mount, const DISC_INTERFACE *interface)
 {
     int vol = get_vol(mount);
@@ -681,82 +676,4 @@ bool fatMountSimple(const char *mount, const DISC_INTERFACE *interface)
     }
     AddDevice(&dotab_elm[vol]);
     return true;
-}
-
-bool fatUnmount(const char *mount)
-{
-    RemoveDevice(mount);
-    if (f_mount(NULL, mount, 1) != FR_OK)
-    {
-        return false;
-    }
-    return true;
-}
-
-bool fatInitDefault(void)
-{
-    return fatInit(true);
-}
-
-void configureArgv()
-{
-#ifdef ARGV_SUPPORT
-    if (__system_argv->argvMagic == ARGV_MAGIC && __system_argv->argc >= 1 && (strrchr(__system_argv->argv[0], '/') != NULL))
-    {
-        for (int i = 0; i < FF_VOLUMES; i++)
-        {
-            const char *mount = get_mnt(i);
-            if (!mount)
-                continue;
-
-            if (get_disc_io(i) != NULL && strncasecmp(__system_argv->argv[0], mount, strlen(mount)))
-            {
-                char filePath[MAX_FILENAME_LENGTH];
-                char *lastSlash;
-                strcpy(filePath, __system_argv->argv[0]);
-                lastSlash = strrchr(filePath, '/');
-
-                if (lastSlash != NULL)
-                {
-                    if (*(lastSlash - 1) == ':')
-                        lastSlash++;
-                    *lastSlash = '\0';
-                }
-                chdir(filePath);
-                return;
-            }
-        }
-    }
-#endif
-}
-
-bool fatInit(bool setArgvMagic)
-{
-    bool sdMounted = false, fatMounted = false;
-    fatMounted = fatMountSimple(FF_MNT_FC ":", dldiGetInternal());
-    if (isDSiMode())
-    {
-        nocashMessage("is dsi mode");
-        sdMounted = fatMountSimple(FF_MNT_SD ":", get_io_dsisd());
-    }
-    if (sdMounted)
-    {
-        chdir("sd:/");
-        if (setArgvMagic)
-        {
-            configureArgv();
-        }
-        return sdMounted;
-    }
-    else if (fatMounted)
-    {
-        chdir("fat:/");
-        if (setArgvMagic)
-        {
-            configureArgv();
-        }
-        return fatMounted;
-    }
-
-    return false;
 }
