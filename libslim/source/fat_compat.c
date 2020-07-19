@@ -52,23 +52,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <strings.h>
 #endif
 
-
-bool fatUnmount(const char *mount)
-{
-    RemoveDevice(mount);
-    if (f_mount(NULL, mount, 1) != FR_OK)
-    {
-        return false;
-    }
-    return true;
-}
-
-bool fatInitDefault(void)
-{
-    return fatInit(true);
-}
-
-void configureArgv()
+static void configureArgv()
 {
 #ifdef ARGV_SUPPORT
     if (__system_argv->argvMagic == ARGV_MAGIC && __system_argv->argc >= 1 && (strrchr(__system_argv->argv[0], '/') != NULL))
@@ -100,6 +84,21 @@ void configureArgv()
 #endif
 }
 
+bool fatUnmount(const char *mount)
+{
+    RemoveDevice(mount);
+    if (f_mount(NULL, mount, 1) != FR_OK)
+    {
+        return false;
+    }
+    return true;
+}
+
+bool fatInitDefault(void)
+{
+    return fatInit(true);
+}
+
 bool fatInit(bool setArgvMagic)
 {
     bool sdMounted = false, fatMounted = false;
@@ -129,4 +128,31 @@ bool fatInit(bool setArgvMagic)
     }
 
     return false;
+}
+
+void fatGetVolumeLabel(const char *mount, char *label)
+{
+    int vol = get_vol(mount);
+    if (vol == -1)
+        return;
+    f_getlabel(mount, label, NULL);
+}
+
+int FAT_getAttr(const char *file)
+{
+    FILINFO stat;
+    if (f_stat(file, &stat) == FR_OK)
+    {
+        return stat.fattrib;
+    }
+    return -1;
+}
+
+int FAT_setAttr(const char *file, uint8_t attr)
+{
+    if (f_chmod(file, attr, AM_RDO | AM_SYS | AM_HID) == FR_OK)
+    {
+        return 0;
+    }
+    return -1;
 }

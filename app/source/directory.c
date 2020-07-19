@@ -33,7 +33,7 @@ int main(int argc, char **argv)
 		DIR *pdir;
 		struct dirent *pent;
 
-		pdir = opendir("sd:/");
+		pdir = opendir(".");
 
 		if (pdir)
 		{
@@ -43,9 +43,9 @@ int main(int argc, char **argv)
 				if (strcmp(".", pent->d_name) == 0 || strcmp("..", pent->d_name) == 0)
 					continue;
 				if (pent->d_type == DT_DIR)
-					iprintf("[%s]\n", pent->d_name);
+					iprintf("[%s] (%d)\n", pent->d_name, FAT_getAttr(pent->d_name));
 				else
-					iprintf("%s\n", pent->d_name);
+					iprintf("%s (%d)\n", pent->d_name, FAT_getAttr(pent->d_name));
 			}
 			closedir(pdir);
 		}
@@ -55,6 +55,7 @@ int main(int argc, char **argv)
 		}
 
 		iprintf("testing write...\n");
+		
 		FILE* ftest = fopen("sd:/test_a.txt", "w");
 		if (ftest) {
 			iprintf("open ok!\n");
@@ -65,6 +66,8 @@ int main(int argc, char **argv)
 		} else {
 			iprintf("open failed!");
 		}
+
+		FAT_setAttr("test.txt", ATTR_HIDDEN);
 
 		iprintf("testing read...\n");
 		FILE* ftest_r = fopen("sd:/test_a.txt", "rb");
@@ -78,6 +81,9 @@ int main(int argc, char **argv)
 		} else {
 			iprintf("open failed!");
 		}
+		char label[256];
+		fatGetVolumeLabel("sd:", label);
+		printf("label: %s", label);
 	}
 	else
 	{

@@ -81,6 +81,24 @@ extern "C"
    */
   void fatGetVolumeLabel(const char *mount, char *label);
 
+  /**
+   * Gets the given FAT attributes for the file.
+   */
+  int FAT_getAttr(const char *file);
+
+  /**
+   * Sets the FAT attributes
+   */
+  int FAT_setAttr(const char *file, uint8_t attr);
+
+// File attributes
+#define ATTR_ARCHIVE    0x20   // Archive
+#define ATTR_DIRECTORY  0x10 // Directory
+#define ATTR_VOLUME     0x08    // Volume
+#define ATTR_SYSTEM     0x04    // System
+#define ATTR_HIDDEN     0x02    // Hidden
+#define ATTR_READONLY   0x01  // Read only
+
 #ifdef __cplusplus
 }
 #endif
