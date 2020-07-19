@@ -7,8 +7,7 @@ libslim aims to be a lightweight drop-in compatible with libfat in the common mo
   * `fat:` for the SLOT-1 flashcart device
   * `sd:` for the TWL-mode SD card
 
-It provides a restricted subset of libfat's API for the common use case. libelm2 does not support the low-level ELM API
-used by WoodRPG 1.25.
+It provides a restricted subset of libfat's API for the common use case. 
 
 ```c
 /**
