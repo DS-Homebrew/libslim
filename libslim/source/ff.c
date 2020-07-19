@@ -2399,7 +2399,11 @@ static FRESULT dir_read (
 		{	/* On the FAT/FAT32 volume */
 			dp->obj.attr = attr = dp->dir[DIR_Attr] & AM_MASK;	/* Get attribute */
 #if FF_USE_LFN		/* LFN configuration */
+#if FF_FS_RPATH && FF_FS_RPATH_DOTENTRY
+			if (b == DDEM || (int)((attr & ~AM_ARC) == AM_VOL) != vol) {	/* An entry without valid data */
+#else
 			if (b == DDEM || b == '.' || (int)((attr & ~AM_ARC) == AM_VOL) != vol) {	/* An entry without valid data */
+#endif
 				ord = 0xFF;
 			} else {
 				if (attr == AM_LFN) {			/* An LFN entry is found */
@@ -2418,7 +2422,11 @@ static FRESULT dir_read (
 				}
 			}
 #else		/* Non LFN configuration */
+#if FF_FS_RPATH && FF_FS_RPATH_DOTENTRY
+			if (b != DDEM && attr != AM_LFN && (int)((attr & ~AM_ARC) == AM_VOL) == vol) {	/* Is it a valid entry? */
+#else
 			if (b != DDEM && b != '.' && attr != AM_LFN && (int)((attr & ~AM_ARC) == AM_VOL) == vol) {	/* Is it a valid entry? */
+#endif
 				break;
 			}
 #endif

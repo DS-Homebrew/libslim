@@ -20,16 +20,14 @@ int main(int argc, char **argv)
 		if (chdir("sd:/")) {
 			iprintf("chdir failed\n");
 		}
-		if (chdir("homebrew")) {
-			iprintf("chdir failed\n");
-		}
+		
+
+		mkdir("test_dir", 0777);
+		chdir("test_dir");
 		
 		if (chdir("..")) {
 			iprintf("chdir failed\n");
 		}
-
-		mkdir("test_dir", 0777);
-
 		DIR *pdir;
 		struct dirent *pent;
 
@@ -40,8 +38,6 @@ int main(int argc, char **argv)
 
 			while ((pent = readdir(pdir)) != NULL)
 			{
-				if (strcmp(".", pent->d_name) == 0 || strcmp("..", pent->d_name) == 0)
-					continue;
 				if (pent->d_type == DT_DIR)
 					iprintf("[%s] (%d)\n", pent->d_name, FAT_getAttr(pent->d_name));
 				else

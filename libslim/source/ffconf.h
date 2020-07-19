@@ -160,6 +160,16 @@
 /   2: f_getcwd() function is available in addition to 1.
 */
 
+#define FF_FS_RPATH_DOTENTRY 1
+/* This option configures support for filtering dot entries "." and ".." in f_readdir.
+/  This option only takes effect when FF_FS_RPATH is >= 1.
+/  
+/   0: Dot entries are filtered out in f_readdir..
+/   1: Dot entries show up in f_readdir.
+/
+/ (Custom option added by libslim. Remove when updating a newer edition of FatFs.)
+*/
+
 /*---------------------------------------------------------------------------/
 / Drive/Volume Configurations
 /---------------------------------------------------------------------------*/
