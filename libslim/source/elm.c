@@ -37,15 +37,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <wctype.h>
 
 #include <ff.h>
-#include "diskio.h"
-#include <elm.h>
+#include <diskio.h>
+#include <slim.h>
+#include <ffvolumes.h>
 
+#include <stdio.h>
+#include <nds/debug.h>
 int elm_error;
 
-#define ELM_FC 0
-#define ELM_SD 1
-static FATFS _elm[2];
-#define VALID_DISK(disk) (disk == ELM_FC || disk == ELM_SD)
+static FATFS _elm[FF_VOLUMES];
 
 #if FF_MAX_SS == 512 /* Single sector size */
 #define ELM_SS(fs) 512U
@@ -82,61 +82,58 @@ typedef struct _DIR_EX_
     size_t namesize;
 } DIR_EX;
 
-static const devoptab_t dotab_elm0 =
+static const devoptab_t dotab_elm[FF_VOLUMES] =
     {
-        "fat",
-        sizeof(FIL),
-        _ELM_open_r,   /* fopen  */
-        _ELM_close_r,  /* fclose */
-        _ELM_write_r,  /* fwrite */
-        _ELM_read_r,   /* fread  */
-        _ELM_seek_r,   /* fseek  */
-        _ELM_fstat_r,  /* fstat  */
-        _ELM_stat_r,   /* stat   */
-        _ELM_link_r,   /* link   */
-        _ELM_unlink_r, /* unlink */
-        _ELM_chdir_r,  /* chdir  */
-        _ELM_rename_r, /* rename */
-        _ELM_mkdir_r,  /* mkdir  */
-        sizeof(DIR_EX),
-        _ELM_diropen_r,   /* diropen   */
-        _ELM_dirreset_r,  /* dirreset  */
-        _ELM_dirnext_r,   /* dirnext   */
-        _ELM_dirclose_r,  /* dirclose  */
-        _ELM_statvfs_r,   /* statvfs   */
-        _ELM_ftruncate_r, /* ftruncate */
-        _ELM_fsync_r,     /* fsync     */
-        NULL,             /* Device data */
-        NULL,
-        NULL};
-
-static const devoptab_t dotab_elm1 =
-    {
-        "sd",
-        sizeof(FIL),
-        _ELM_open_r,   /* fopen  */
-        _ELM_close_r,  /* fclose */
-        _ELM_write_r,  /* fwrite */
-        _ELM_read_r,   /* fread  */
-        _ELM_seek_r,   /* fseek  */
-        _ELM_fstat_r,  /* fstat  */
-        _ELM_stat_r,   /* stat   */
-        _ELM_link_r,   /* link   */
-        _ELM_unlink_r, /* unlink */
-        _ELM_chdir_r,  /* chdir  */
-        _ELM_rename_r, /* rename */
-        _ELM_mkdir_r,  /* mkdir  */
-        sizeof(DIR_EX),
-        _ELM_diropen_r,   /* diropen   */
-        _ELM_dirreset_r,  /* dirreset  */
-        _ELM_dirnext_r,   /* dirnext   */
-        _ELM_dirclose_r,  /* dirclose  */
-        _ELM_statvfs_r,   /* statvfs   */
-        _ELM_ftruncate_r, /* ftruncate */
-        _ELM_fsync_r,     /* fsync     */
-        NULL,             /* Device data */
-        NULL,
-        NULL};
+        {FF_MNT_FC,
+         sizeof(FIL),
+         _ELM_open_r,   /* fopen  */
+         _ELM_close_r,  /* fclose */
+         _ELM_write_r,  /* fwrite */
+         _ELM_read_r,   /* fread  */
+         _ELM_seek_r,   /* fseek  */
+         _ELM_fstat_r,  /* fstat  */
+         _ELM_stat_r,   /* stat   */
+         _ELM_link_r,   /* link   */
+         _ELM_unlink_r, /* unlink */
+         _ELM_chdir_r,  /* chdir  */
+         _ELM_rename_r, /* rename */
+         _ELM_mkdir_r,  /* mkdir  */
+         sizeof(DIR_EX),
+         _ELM_diropen_r,   /* diropen   */
+         _ELM_dirreset_r,  /* dirreset  */
+         _ELM_dirnext_r,   /* dirnext   */
+         _ELM_dirclose_r,  /* dirclose  */
+         _ELM_statvfs_r,   /* statvfs   */
+         _ELM_ftruncate_r, /* ftruncate */
+         _ELM_fsync_r,     /* fsync     */
+         NULL,             /* Device data */
+         NULL,
+         NULL},
+        {FF_MNT_SD,
+         sizeof(FIL),
+         _ELM_open_r,   /* fopen  */
+         _ELM_close_r,  /* fclose */
+         _ELM_write_r,  /* fwrite */
+         _ELM_read_r,   /* fread  */
+         _ELM_seek_r,   /* fseek  */
+         _ELM_fstat_r,  /* fstat  */
+         _ELM_stat_r,   /* stat   */
+         _ELM_link_r,   /* link   */
+         _ELM_unlink_r, /* unlink */
+         _ELM_chdir_r,  /* chdir  */
+         _ELM_rename_r, /* rename */
+         _ELM_mkdir_r,  /* mkdir  */
+         sizeof(DIR_EX),
+         _ELM_diropen_r,   /* diropen   */
+         _ELM_dirreset_r,  /* dirreset  */
+         _ELM_dirnext_r,   /* dirnext   */
+         _ELM_dirclose_r,  /* dirclose  */
+         _ELM_statvfs_r,   /* statvfs   */
+         _ELM_ftruncate_r, /* ftruncate */
+         _ELM_fsync_r,     /* fsync     */
+         NULL,             /* Device data */
+         NULL,
+         NULL}};
 
 static TCHAR CvtBuf[FF_MAX_LFN + 1];
 

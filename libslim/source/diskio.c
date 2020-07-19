@@ -6,6 +6,8 @@
 /*-----------------------------------------------------------------------*/
 
 #include "ff.h"
+#include "ffvolumes.h"
+
 #include "diskio.h"
 #include <stdio.h>
 #include <limits.h>
@@ -13,13 +15,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <nds/arm9/dldi.h>
-
-/*-----------------------------------------------------------------------*/
-/* Correspondence between physical drive number and physical drive.      */
-
-#define FC 0
-#define SD 1
-
+#include <nds/disc_io.h>
 /*-----------------------------------------------------------------------*/
 /* CACHE                                                                 */
 
@@ -105,31 +101,14 @@ static void invalidate_cache(DWORD drv, DWORD sector, BYTE count)
 /*-----------------------------------------------------------------------*/
 /* Initialize a Drive                                                    */
 
-static const DISC_INTERFACE *fc = NULL;
-static const DISC_INTERFACE *sd = NULL;
-
 DSTATUS disk_initialize(BYTE drv)
 {
-	switch (drv)
+	if (!init_disc_io(drv))
 	{
-	case FC:
-		if (!fc)
-		{
-			fc = dldiGetInternal();
-			if (!fc->startup())
-				break;
-		}
-		return fc->isInserted() ? 0 : STA_NOINIT;
-	case SD:
-		if (!sd)
-		{
-			sd = get_io_dsisd();
-			if (!sd->startup())
-				break;
-		}
-		return sd->isInserted() ? 0 : STA_NOINIT;
+		return STA_NOINIT;
 	}
-	return STA_NOINIT;
+
+	return get_disc_io(drv)->isInserted() ? 0 : STA_NOINIT;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -139,12 +118,10 @@ DSTATUS disk_status(
 	BYTE drv /* Physical drive nmuber (0..) */
 )
 {
-	switch (drv)
+	const DISC_INTERFACE *disc_io = NULL;
+	if ((disc_io = get_disc_io(drv)) != NULL)
 	{
-	case FC:
-		return fc->isInserted() ? 0 : STA_NOINIT;
-	case SD:
-		return sd->isInserted() ? 0 : STA_NOINIT;
+		return disc_io->isInserted() ? 0 : STA_NOINIT;
 	}
 	return STA_NOINIT;
 }
@@ -159,12 +136,10 @@ DRESULT disk_read_internal(
 	BYTE count	  /* Number of sectors to read (1..255) */
 )
 {
-	switch (drv)
+	const DISC_INTERFACE *disc_io = NULL;
+	if ((disc_io = get_disc_io(drv)) != NULL)
 	{
-	case FC:
-		return fc->readSectors(sector, count, buff) ? RES_OK : RES_ERROR;
-	case SD:
-		return sd->readSectors(sector, count, buff) ? RES_OK : RES_ERROR;
+		return disc_io->readSectors(sector, count, buff) ? RES_OK : RES_ERROR;
 	}
 	return RES_PARERR;
 }
@@ -177,10 +152,8 @@ DRESULT disk_read(
 )
 {
 	DRESULT res = RES_PARERR;
-	switch (drv)
+	if (VALID_DISK(drv)) 
 	{
-	case FC:
-	case SD:
 		if (count == 1 && read_from_cache(drv, sector, buff))
 			return RES_OK;
 		if (count != 1)
@@ -188,7 +161,6 @@ DRESULT disk_read(
 		res = disk_read_internal(drv, buff, sector, count);
 		if (res == RES_OK && count == 1)
 			add_to_cache(drv, sector, buff);
-		break;
 	}
 	return res;
 }
@@ -205,12 +177,10 @@ DRESULT disk_write(
 )
 {
 	invalidate_cache(drv, sector, count);
-	switch (drv)
+	const DISC_INTERFACE *disc_io = NULL;
+	if ((disc_io = get_disc_io(drv)) != NULL)
 	{
-	case FC:
-		return fc->writeSectors(sector, count, buff) ? RES_OK : RES_ERROR;
-	case SD:
-		return sd->writeSectors(sector, count, buff) ? RES_OK : RES_ERROR;
+		return disc_io->writeSectors(sector, count, buff) ? RES_OK : RES_ERROR;
 	}
 	return RES_PARERR;
 }
@@ -225,18 +195,11 @@ DRESULT disk_ioctl(
 	void *buff /* Buffer to send/receive control data */
 )
 {
-	if (!fc && drv == FC) return RES_NOTRDY;
-	if (!sd && drv == SD) return RES_NOTRDY;
-
-	if (fc && drv == FC && ctrl == CTRL_SYNC)
+	const DISC_INTERFACE *disc_io = NULL;
+	if ((disc_io = get_disc_io(drv)) != NULL)
 	{
-		return fc->clearStatus() ? RES_OK : RES_ERROR;
+		return disc_io->clearStatus() ? RES_OK : RES_ERROR;
 	}
-	if (sd && drv == SD && ctrl == CTRL_SYNC)
-	{
-		return sd->clearStatus() ? RES_OK : RES_ERROR;
-	}
-	
 	return RES_PARERR;
 }
 

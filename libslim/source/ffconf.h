@@ -1,10 +1,10 @@
+#include "ffvolconf.h"
+
 /*---------------------------------------------------------------------------/
 /  FatFs Functional Configurations
 /---------------------------------------------------------------------------*/
 
 #define FFCONF_DEF	86606	/* Revision ID */
-
-#define FF_CUST_ELM_SUPPORT 1 /* Enables fsize and sclust in FIL struct*/
 
 /*---------------------------------------------------------------------------/
 / Function Configurations
@@ -160,17 +160,11 @@
 /   2: f_getcwd() function is available in addition to 1.
 */
 
-
 /*---------------------------------------------------------------------------/
 / Drive/Volume Configurations
 /---------------------------------------------------------------------------*/
 
-#define FF_VOLUMES		2
-/* Number of volumes (logical drives) to be used. (1-10) */
-
-
 #define FF_STR_VOLUME_ID	1
-#define FF_VOLUME_STRS		"fat", "sd"
 /* FF_STR_VOLUME_ID switches support for volume ID in arbitrary strings.
 /  When FF_STR_VOLUME_ID is set to 1 or 2, arbitrary strings can be used as drive
 /  number in the path name. FF_VOLUME_STRS defines the volume ID strings for each
@@ -181,7 +175,6 @@
 /
 /  const char* VolumeStr[FF_VOLUMES] = {"ram","flash","sd","usb",...
 */
-
 
 #define FF_MULTI_PARTITION	0
 /* This option switches support for multiple volumes on the physical drive.
