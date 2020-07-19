@@ -39,13 +39,6 @@ extern "C"
 
   int ELM_Mount(void);
   void ELM_Unmount(void);
-  int ELM_ClusterSizeFromHandle(int fildes, uint32_t *size);
-  int ELM_SectorsPerClusterFromHandle(int fildes, uint32_t *per);
-  int ELM_ClusterSizeFromDisk(int disk, uint32_t *size);
-  int ELM_ClustersFromDisk(int disk, uint32_t *clusters);
-  int ELM_FreeClustersFromDisk(int disk, uint32_t *clusters);
-  int ELM_SectorsFromDisk(int disk, uint32_t *sectors);
-  int ELM_DirEntry(int fildes, uint64_t *entry);
 
 #ifdef __cplusplus
 }
