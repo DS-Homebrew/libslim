@@ -15,7 +15,7 @@ int main(int argc, char **argv)
 	// Initialise the console, required for printf
 	consoleDemoInit();
 
-	if (fatMountSimple("sd:/", get_io_dsisd()))
+	if (fatInitDefault())
 	{
 		if (chdir("sd:/")) {
 			iprintf("chdir failed\n");
@@ -27,6 +27,9 @@ int main(int argc, char **argv)
 		if (chdir("..")) {
 			iprintf("chdir failed\n");
 		}
+
+		mkdir("test_dir", 0777);
+
 		DIR *pdir;
 		struct dirent *pent;
 
@@ -75,7 +78,6 @@ int main(int argc, char **argv)
 		} else {
 			iprintf("open failed!");
 		}
-
 	}
 	else
 	{

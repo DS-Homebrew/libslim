@@ -14,7 +14,6 @@
 #include <time.h>
 #include <stdbool.h>
 #include <string.h>
-#include <nds/arm9/dldi.h>
 #include <nds/disc_io.h>
 /*-----------------------------------------------------------------------*/
 /* CACHE                                                                 */

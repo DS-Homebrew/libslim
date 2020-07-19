@@ -30,16 +30,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __ELM_H__
 #define __ELM_H__
 
-#include <stdint.h>
 #include <nds/disc_io.h>
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-  bool fatMountSimple(const char* mount, const DISC_INTERFACE* interface);
-  void ELM_Unmount(void);
-
+  bool fatMountSimple(const char *mount, const DISC_INTERFACE *interface);
+  bool fatUnmount(const char *mount);
+  bool fatInitDefault(void);
+  bool fatInit(bool setArgvMagic);
 #ifdef __cplusplus
 }
 #endif

@@ -1,13 +1,12 @@
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
 
 #include "ffvolumes.h"
 
 static const DISC_INTERFACE *_disc_io[FF_VOLUMES] = {NULL};
-static bool _disc_io_init[FF_VOLUMES] = {false};
+static BOOL _disc_io_init[FF_VOLUMES] = {false};
 
-bool configure_disc_io(int vol, const DISC_INTERFACE *disc_io_drv)
+BOOL configure_disc_io(volno_t vol, const DISC_INTERFACE *disc_io_drv)
 {
     if (!VALID_DISK(vol))
         return false;
@@ -17,7 +16,7 @@ bool configure_disc_io(int vol, const DISC_INTERFACE *disc_io_drv)
     return true;
 }
 
-bool init_disc_io(int vol) 
+BOOL init_disc_io(volno_t vol) 
 {
     if (!VALID_DISK(vol))
         return false;
@@ -29,7 +28,7 @@ bool init_disc_io(int vol)
     return _disc_io_init[vol];
 }
 
-bool deinit_disc_io(int vol) 
+BOOL deinit_disc_io(volno_t vol) 
 {
     if (!VALID_DISK(vol))
         return false;
@@ -41,7 +40,7 @@ bool deinit_disc_io(int vol)
     return !_disc_io_init[vol];
 }
 
-const DISC_INTERFACE *get_disc_io(int vol)
+const DISC_INTERFACE *get_disc_io(volno_t vol)
 {
     if (!VALID_DISK(vol))
         return NULL;
@@ -51,8 +50,9 @@ const DISC_INTERFACE *get_disc_io(int vol)
 }
 
 extern int get_ldnumber(const TCHAR** path);
+extern const char* const VolumeStr[FF_VOLUMES];
 
-int get_vol(const TCHAR* mount)
+volno_t get_vol(const TCHAR* mount)
 {
     int mnt_len = strlen(mount);
     if (mnt_len < 2)
@@ -62,4 +62,11 @@ int get_vol(const TCHAR* mount)
     if (end_chr == ':' || (end_chr == '/' && mount[mnt_len - 2] == ':'))
         return get_ldnumber(&mount);
     return -1;
+}
+
+const TCHAR* const get_mnt(volno_t vol)
+{
+    if (!VALID_DISK(vol))
+        return NULL;
+    return VolumeStr[vol];
 }

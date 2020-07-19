@@ -470,7 +470,7 @@ static FILESEM Files[FF_FS_LOCK];	/* Open object lock semaphores */
 
 #if FF_STR_VOLUME_ID
 #ifdef FF_VOLUME_STRS
-static const char* const VolumeStr[FF_VOLUMES] = {FF_VOLUME_STRS};	/* Pre-defined volume ID */
+const char* const VolumeStr[FF_VOLUMES] = {FF_VOLUME_STRS};	/* Pre-defined volume ID */
 #endif
 #endif
 

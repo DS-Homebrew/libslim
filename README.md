@@ -13,7 +13,19 @@ It provides a restricted subset of libfat's API for the common use case.
 /**
  * Initializes SD card in sd:/ and SLOT-1 flashcart device in fat:/ with the default
  * DISC_INTERFACE, then sets the default directory to sd:/ if available, or 
- * fat:/ otherwise.
+ * fat:/ otherwise, and then changes directory according to argv if setArgvMagic 
+ * is true.
+ * 
+ * This method differs significantly from its equivalent libfat API.
+ * 
+ * Returns true if either sd:/ or fat:/ is successfully mounted, and false otherwise.
+ */
+bool fatInit(bool setArgvMagic);
+
+/**
+ * Initializes SD card in sd:/ and SLOT-1 flashcart device in fat:/ with the default
+ * DISC_INTERFACE, then sets the default directory to sd:/ if available, or 
+ * fat:/ otherwise, and then changes directory according to argv.
  * 
  * Returns true if either sd:/ or fat:/ is successfully mounted, and false otherwise.
  */
@@ -29,8 +41,10 @@ bool fatMountSimple(const char* mount, const DISC_INTERFACE* interface);
 
 /**
  * Unmounts the given mount point, attempting to flush any open files.
+ * 
+ * Unlike libfat, this function returns true on success.
  */
-void fatUnmount(const char* mount);
+bool fatUnmount(const char* mount);
 
 /**
  * Gets the volume label of the given mount point.

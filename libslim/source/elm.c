@@ -24,14 +24,17 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+#define ARGV_SUPPORT
 
 #include <sys/iosupport.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
 #include <sys/unistd.h>
+#include <nds/arm9/dldi.h>
 
 #include <ctype.h>
 #include <string.h>
+
 #include <wchar.h>
 #include <stdlib.h>
 #include <wctype.h>
@@ -41,8 +44,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <slim.h>
 #include <ffvolumes.h>
 
-#include <stdio.h>
+#ifdef ARGV_SUPPORT
+#include <nds/system.h>
+#include <strings.h>
+#endif
+
 #include <nds/debug.h>
+
 int elm_error;
 
 static FATFS _elm[FF_VOLUMES];
@@ -671,17 +679,84 @@ bool fatMountSimple(const char *mount, const DISC_INTERFACE *interface)
     {
         return false;
     }
-    if (!AddDevice(&dotab_elm[vol]))
+    AddDevice(&dotab_elm[vol]);
+    return true;
+}
+
+bool fatUnmount(const char *mount)
+{
+    RemoveDevice(mount);
+    if (f_mount(NULL, mount, 1) != FR_OK)
     {
         return false;
     }
     return true;
 }
 
-void ELM_Unmount(void)
+bool fatInitDefault(void)
 {
-    RemoveDevice("fat:");
-    RemoveDevice("sd:");
-    f_mount(NULL, "fat:", 1);
-    f_mount(NULL, "sd:", 1);
+    return fatInit(true);
+}
+
+void configureArgv()
+{
+#ifdef ARGV_SUPPORT
+    if (__system_argv->argvMagic == ARGV_MAGIC && __system_argv->argc >= 1 && (strrchr(__system_argv->argv[0], '/') != NULL))
+    {
+        for (int i = 0; i < FF_VOLUMES; i++)
+        {
+            const char *mount = get_mnt(i);
+            if (!mount)
+                continue;
+
+            if (get_disc_io(i) != NULL && strncasecmp(__system_argv->argv[0], mount, strlen(mount)))
+            {
+                char filePath[MAX_FILENAME_LENGTH];
+                char *lastSlash;
+                strcpy(filePath, __system_argv->argv[0]);
+                lastSlash = strrchr(filePath, '/');
+
+                if (lastSlash != NULL)
+                {
+                    if (*(lastSlash - 1) == ':')
+                        lastSlash++;
+                    *lastSlash = '\0';
+                }
+                chdir(filePath);
+                return;
+            }
+        }
+    }
+#endif
+}
+
+bool fatInit(bool setArgvMagic)
+{
+    bool sdMounted = false, fatMounted = false;
+    fatMounted = fatMountSimple(FF_MNT_FC ":", dldiGetInternal());
+    if (isDSiMode())
+    {
+        nocashMessage("is dsi mode");
+        sdMounted = fatMountSimple(FF_MNT_SD ":", get_io_dsisd());
+    }
+    if (sdMounted)
+    {
+        chdir("sd:/");
+        if (setArgvMagic)
+        {
+            configureArgv();
+        }
+        return sdMounted;
+    }
+    else if (fatMounted)
+    {
+        chdir("fat:/");
+        if (setArgvMagic)
+        {
+            configureArgv();
+        }
+        return fatMounted;
+    }
+
+    return false;
 }
