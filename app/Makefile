@@ -104,7 +104,7 @@ $(BUILD): libslim
 clean:
 	@echo clean ...
 	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).nds
-	@rm -fr $(LIBELM)/lib
+	@rm -fr $(LIBSLIM)/lib
 
 #---------------------------------------------------------------------------------
 else

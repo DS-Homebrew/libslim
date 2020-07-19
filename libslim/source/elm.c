@@ -633,33 +633,31 @@ WCHAR ff_convert(WCHAR src, UINT dir)
     return src;
 }
 
-int ELM_Mount(void)
+bool fatMountSimple(const char *mount, const DISC_INTERFACE *interface)
 {
-    int ret = 0;
-    // if (f_mount(&(_elm[0]), "fat:", 1) != FR_OK)
-    // {
-    //     ret |= 1;
-    // }
-    if (f_mount(&(_elm[1]), "sd:", 1) != FR_OK)
-    {
-        ret |= 2;
+    int vol = get_vol(mount);
+    if (vol == -1) {
+        nocashMessage("vol failed.");
+        return false;
+    } else {
+        char x[2];
+        sprintf(x, "%d", vol);
+        nocashMessage(x);
     }
-    if (ret == 3)
+    configure_disc_io(vol, interface);
+    if (f_mount(&(_elm[vol]), mount, 1) != FR_OK)
     {
-        return ret;
+        return false;
     }
-    // if (!(ret & 1))
-    // {
-    //     _ELM_chk_mounted(0);
-    //     AddDevice(&dotab_elm0);
-    // }
-    if (!(ret & 2))
+    if (!_ELM_chk_mounted(vol))
     {
-        _ELM_chk_mounted(1);
-        AddDevice(&dotab_elm1);
+        return false;
     }
-    elm_error = 0;
-    return ret;
+    if (!AddDevice(&dotab_elm[vol]))
+    {
+        return false;
+    }
+    return true;
 }
 
 void ELM_Unmount(void)

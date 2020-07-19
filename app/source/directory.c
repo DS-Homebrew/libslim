@@ -5,7 +5,7 @@
 #include <string.h>
 #include <dirent.h>
 
-#include <elm.h>
+#include <slim.h>
 
 //---------------------------------------------------------------------------------
 int main(int argc, char **argv)
@@ -15,12 +15,15 @@ int main(int argc, char **argv)
 	// Initialise the console, required for printf
 	consoleDemoInit();
 
-	if (!ELM_Mount())
+	if (fatMountSimple("sd:/", get_io_dsisd()))
 	{
+		if (!chdir("sd:/")) {
+			iprintf("chdir failed\n");
+		}
 		DIR *pdir;
 		struct dirent *pent;
 
-		pdir = opendir("sd:/");
+		pdir = opendir("/");
 
 		if (pdir)
 		{

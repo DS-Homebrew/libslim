@@ -31,13 +31,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __ELM_H__
 
 #include <stdint.h>
+#include <nds/disc_io.h>
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-  int ELM_Mount(void);
+  bool fatMountSimple(const char* mount, const DISC_INTERFACE* interface);
   void ELM_Unmount(void);
 
 #ifdef __cplusplus
