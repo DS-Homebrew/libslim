@@ -17,13 +17,19 @@ int main(int argc, char **argv)
 
 	if (fatMountSimple("sd:/", get_io_dsisd()))
 	{
-		if (!chdir("sd:/")) {
+		if (chdir("sd:/")) {
+			iprintf("chdir failed\n");
+		}
+		if (chdir("roms")) {
+			iprintf("chdir failed\n");
+		}
+		if (chdir("...")) {
 			iprintf("chdir failed\n");
 		}
 		DIR *pdir;
 		struct dirent *pent;
 
-		pdir = opendir("/");
+		pdir = opendir(".");
 
 		if (pdir)
 		{
