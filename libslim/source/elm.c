@@ -478,27 +478,28 @@ int _ELM_chdir_r(struct _reent *r, const char *path)
     TCHAR *p = _ELM_mbstoucs2(_ELM_realpath(path), &len);
     TCHAR *drive = strchr(p, ':');
 
-    if (drive != NULL) {
+    if (drive != NULL)
+    {
         TCHAR _drive = drive[1];
         drive[1] = '\0';
         elm_error = f_chdrive(p);
-        if (elm_error) {
+        if (elm_error)
             return _ELM_errnoparse(r, 0, -1);
-        }
         drive[1] = _drive;
     }
 
-    /* FatFs expects no trailing slash */
-    if (len > 1 && p[len - 1] == L'/')
+    /* 
+     * FatFs expects no trailing slash 
+     * drive[2] != '\0' is a check to ensure 
+     * parent drive is not root.
+     */
+    if (drive[2] != '\0' && (len > 1 && p[len - 1] == L'/'))
     {
         p[len - 1] = L'\0';
         --len;
     }
 
     elm_error = f_chdir(p);
-    char err[256];
-    sprintf(err, "err: %d, %s", elm_error, p);
-    nocashMessage(err);
     return _ELM_errnoparse(r, 0, -1);
 #else
     r->_errno = ENOSYS;
@@ -540,15 +541,12 @@ DIR_ITER *_ELM_diropen_r(struct _reent *r, DIR_ITER *dirState, const char *path)
 #if FF_FS_MINIMIZE < 2
     size_t len = 0;
     TCHAR *p = _ELM_mbstoucs2(_ELM_realpath(path), &len);
-    
+
     if (len > 1 && p[len - 1] == L'/')
     {
         p[len - 1] = L'\0';
         --len;
     }
-    char _x[256];
-    sprintf(_x, "diropen p: %s", p);
-    nocashMessage(_x);
 
     DIR_EX *dir = (DIR_EX *)dirState->dirStruct;
     memcpy(dir->name, (void *)p, (len + 1) * sizeof(TCHAR));
@@ -662,7 +660,7 @@ WCHAR ff_convert(WCHAR src, UINT dir)
 bool fatMountSimple(const char *mount, const DISC_INTERFACE *interface)
 {
     int vol = get_vol(mount);
-    if (vol == -1) 
+    if (vol == -1)
         return false;
     configure_disc_io(vol, interface);
     if (f_mount(&(_elm[vol]), mount, 1) != FR_OK)

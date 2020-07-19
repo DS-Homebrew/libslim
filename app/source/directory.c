@@ -20,16 +20,17 @@ int main(int argc, char **argv)
 		if (chdir("sd:/")) {
 			iprintf("chdir failed\n");
 		}
-		if (chdir("roms")) {
+		if (chdir("homebrew")) {
 			iprintf("chdir failed\n");
 		}
-		if (chdir("...")) {
+		
+		if (chdir("..")) {
 			iprintf("chdir failed\n");
 		}
 		DIR *pdir;
 		struct dirent *pent;
 
-		pdir = opendir(".");
+		pdir = opendir("sd:/");
 
 		if (pdir)
 		{
