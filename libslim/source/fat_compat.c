@@ -45,8 +45,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <slim.h>
 #include <ffvolumes.h>
 
-#include <nds/debug.h>
-
 #ifdef ARGV_SUPPORT
 #include <nds/system.h>
 #include <strings.h>
@@ -105,7 +103,6 @@ bool fatInit(bool setArgvMagic)
     fatMounted = fatMountSimple(FF_MNT_FC ":", dldiGetInternal());
     if (isDSiMode())
     {
-        nocashMessage("is dsi mode");
         sdMounted = fatMountSimple(FF_MNT_SD ":", get_io_dsisd());
     }
     if (sdMounted)

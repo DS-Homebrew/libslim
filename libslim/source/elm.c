@@ -43,8 +43,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <slim.h>
 #include <ffvolumes.h>
 
-#include <nds/debug.h>
-
 int elm_error;
 
 static FATFS _elm[FF_VOLUMES];
