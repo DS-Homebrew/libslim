@@ -53,11 +53,7 @@ LIBDIRS	:=	$(LIBNDS)
 ifneq ($(BUILD),$(notdir $(CURDIR)))
 #---------------------------------------------------------------------------------
 
-ifeq ($(BUILD),dldi)
-export OUTPUT	:=	$(TOPDIR)/lib/$(TARGET)x.a
-else
-export OUTPUT	:=	$(TOPDIR)/lib/$(TARGET).a
-endif
+export OUTPUT	:=	$(CURDIR)/lib/libslim.a
 
 export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
 			$(foreach dir,$(DATA),$(CURDIR)/$(dir))
@@ -95,10 +91,10 @@ export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 #---------------------------------------------------------------------------------
 all: $(BUILD)
 
-../lib:
+./lib:
 	@[ -d $@ ] || mkdir -p $@
 
-$(BUILD): ../lib
+$(BUILD): ./lib
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
