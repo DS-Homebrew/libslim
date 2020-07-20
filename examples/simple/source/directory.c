@@ -18,11 +18,17 @@ int main(int argc, char **argv)
 
 	if (fatInitDefault())
 	{
+		struct statvfs stat;
 		nocashMessage("fatInitOk");
 
 		sassert(access("sd:/", F_OK) == 0, "access failed!");
 		sassert(access("sd:/roms", F_OK) == 0, "access failed!");
-
+		
+		if (statvfs("sd:/", &stat) != 0)
+		{
+			nocashMessage("statvfs failed");
+			iprintf("statvfs failed\n");
+		}
 		if (chdir("sd:/"))
 		{
 			iprintf("chdir failed\n");

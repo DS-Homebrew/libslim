@@ -618,7 +618,33 @@ int _ELM_dirclose_r(struct _reent *r, DIR_ITER *dirState)
 
 int _ELM_statvfs_r(struct _reent *r, const char *path, struct statvfs *buf)
 {
-    r->_errno = ENOSYS;
+    size_t len = 0;
+    TCHAR *p = _ELM_mbstoucs2(_ELM_realpath(path), &len);
+
+    int vol;
+    
+    if ((vol = get_vol(p) != -1)) {
+        DWORD nclust;
+        FATFS *fat = &_elm[vol];
+        elm_error = f_getfree(p, &nclust, &fat);
+
+        buf->f_bsize = ELM_SS(fat);
+        buf->f_frsize = ELM_SS(fat);
+
+        buf->f_blocks = (fat->n_fatent - 2) * fat->csize;
+        buf->f_bfree = nclust * fat->csize;
+        buf->f_bavail = buf->f_bfree;
+
+        buf->f_files = (fat->n_fatent - 2) * fat->csize;
+        buf->f_ffree = nclust * fat->csize;
+        buf->f_favail = buf->f_bfree;
+	    buf->f_fsid = fat->fs_type;
+
+        buf->f_namemax = FF_MAX_LFN;
+        buf->f_flag = ST_NOSUID /* No support for ST_ISUID and ST_ISGID file mode bits */
+		    | (FF_FS_READONLY ? ST_RDONLY /* Read only file system */ : 0 ) ;
+        return _ELM_errnoparse(r, 0, -1);
+    }
     return -1;
 }
 
