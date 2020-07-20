@@ -436,13 +436,17 @@ int _ELM_stat_r(struct _reent *r, const char *file, struct stat *st)
 #if FF_FS_MINIMIZE < 1
     size_t len = 0;
     TCHAR *p = _ELM_mbstoucs2(_ELM_realpath(file), &len);
+    
+    // chop off trailing slash
     if (p[len - 1] == L'/')
         p[len - 1] = L'\0';
-    if ((p[0] == L'0' || p[0] == L'1') && p[1] == L':' && p[2] == L'\0')
-    {
-        _ELM_disk_to_stat(p[0] - L'0', st);
-        return 0;
+    
+    int vol;
+    if ((vol = get_vol(p)) != -1) {
+        _ELM_disk_to_stat(vol, st);
+        return _ELM_errnoparse(r, 0, -1);
     }
+
     FILINFO fi;
     fi.fsize = sizeof(fi.fname) / sizeof(fi.fname[0]);
     elm_error = f_stat(p, &fi);

@@ -21,6 +21,8 @@ int main(int argc, char **argv)
 		nocashMessage("fatInitOk");
 
 		sassert(access("sd:/", F_OK) == 0, "access failed!");
+		sassert(access("sd:/roms", F_OK) == 0, "access failed!");
+
 		if (chdir("sd:/"))
 		{
 			iprintf("chdir failed\n");
