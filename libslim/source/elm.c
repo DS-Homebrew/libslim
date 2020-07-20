@@ -84,89 +84,40 @@ typedef struct _DIR_EX_
 } DIR_EX;
 
 #define ELM_DEVOPTAB(mount)                     \
-    ({FF_MNT_FC,                                \
-         sizeof(FIL),                           \
-         _ELM_open_r,   /* fopen  */            \
-         _ELM_close_r,  /* fclose */            \
-         _ELM_write_r,  /* fwrite */            \
-         _ELM_read_r,   /* fread  */            \
-         _ELM_seek_r,   /* fseek  */            \
-         _ELM_fstat_r,  /* fstat  */            \
-         _ELM_stat_r,   /* stat   */            \
-         _ELM_link_r,   /* link   */            \
-         _ELM_unlink_r, /* unlink */            \
-         _ELM_chdir_r,  /* chdir  */            \
-         _ELM_rename_r, /* rename */            \
-         _ELM_mkdir_r,  /* mkdir  */            \
-         sizeof(DIR_EX),                        \
-         _ELM_diropen_r,   /* diropen   */      \
-         _ELM_dirreset_r,  /* dirreset  */      \
-         _ELM_dirnext_r,   /* dirnext   */      \
-         _ELM_dirclose_r,  /* dirclose  */      \
-         _ELM_statvfs_r,   /* statvfs   */      \
-         _ELM_ftruncate_r, /* ftruncate */      \
-         _ELM_fsync_r,     /* fsync     */      \
-         NULL,             /* device data */    \
-         NULL,                                  \
-         NULL,                                  \
-         _ELM_unlink_r})                        \
+    {                                           \
+        mount,                                  \
+            sizeof(FIL),                        \
+            _ELM_open_r,   /* fopen  */         \
+            _ELM_close_r,  /* fclose */         \
+            _ELM_write_r,  /* fwrite */         \
+            _ELM_read_r,   /* fread  */         \
+            _ELM_seek_r,   /* fseek  */         \
+            _ELM_fstat_r,  /* fstat  */         \
+            _ELM_stat_r,   /* stat   */         \
+            _ELM_link_r,   /* link   */         \
+            _ELM_unlink_r, /* unlink */         \
+            _ELM_chdir_r,  /* chdir  */         \
+            _ELM_rename_r, /* rename */         \
+            _ELM_mkdir_r,  /* mkdir  */         \
+            sizeof(DIR_EX),                     \
+            _ELM_diropen_r,   /* diropen   */   \
+            _ELM_dirreset_r,  /* dirreset  */   \
+            _ELM_dirnext_r,   /* dirnext   */   \
+            _ELM_dirclose_r,  /* dirclose  */   \
+            _ELM_statvfs_r,   /* statvfs   */   \
+            _ELM_ftruncate_r, /* ftruncate */   \
+            _ELM_fsync_r,     /* fsync     */   \
+            NULL,             /* device data */ \
+            NULL,                               \
+            NULL,                               \
+            _ELM_rmdir_r /* rmdir */            \
+    }
 
 static const devoptab_t dotab_elm[FF_VOLUMES] =
     {
-        {FF_MNT_FC,
-         sizeof(FIL),
-         _ELM_open_r,   /* fopen  */
-         _ELM_close_r,  /* fclose */
-         _ELM_write_r,  /* fwrite */
-         _ELM_read_r,   /* fread  */
-         _ELM_seek_r,   /* fseek  */
-         _ELM_fstat_r,  /* fstat  */
-         _ELM_stat_r,   /* stat   */
-         _ELM_link_r,   /* link   */
-         _ELM_unlink_r, /* unlink */
-         _ELM_chdir_r,  /* chdir  */
-         _ELM_rename_r, /* rename */
-         _ELM_mkdir_r,  /* mkdir  */
-         sizeof(DIR_EX),
-         _ELM_diropen_r,   /* diropen   */
-         _ELM_dirreset_r,  /* dirreset  */
-         _ELM_dirnext_r,   /* dirnext   */
-         _ELM_dirclose_r,  /* dirclose  */
-         _ELM_statvfs_r,   /* statvfs   */
-         _ELM_ftruncate_r, /* ftruncate */
-         _ELM_fsync_r,     /* fsync     */
-         NULL,             /* Device data */
-         NULL,
-         NULL,
-         _ELM_rmdir_r     /* rmdir */
-         },  
-        {FF_MNT_SD,
-         sizeof(FIL),
-         _ELM_open_r,   /* fopen  */
-         _ELM_close_r,  /* fclose */
-         _ELM_write_r,  /* fwrite */
-         _ELM_read_r,   /* fread  */
-         _ELM_seek_r,   /* fseek  */
-         _ELM_fstat_r,  /* fstat  */
-         _ELM_stat_r,   /* stat   */
-         _ELM_link_r,   /* link   */
-         _ELM_unlink_r, /* unlink */
-         _ELM_chdir_r,  /* chdir  */
-         _ELM_rename_r, /* rename */
-         _ELM_mkdir_r,  /* mkdir  */
-         sizeof(DIR_EX),
-         _ELM_diropen_r,   /* diropen   */
-         _ELM_dirreset_r,  /* dirreset  */
-         _ELM_dirnext_r,   /* dirnext   */
-         _ELM_dirclose_r,  /* dirclose  */
-         _ELM_statvfs_r,   /* statvfs   */
-         _ELM_ftruncate_r, /* ftruncate */
-         _ELM_fsync_r,     /* fsync     */
-         NULL,             /* Device data */
-         NULL,
-         NULL,
-         _ELM_rmdir_r}
-         };  /* rmdir */
+        ELM_DEVOPTAB(FF_MNT_FC),
+        ELM_DEVOPTAB(FF_MNT_SD),
+    };
 
 static TCHAR CvtBuf[FF_MAX_LFN + 1];
 
@@ -469,13 +420,14 @@ int _ELM_stat_r(struct _reent *r, const char *file, struct stat *st)
 #if FF_FS_MINIMIZE < 1
     size_t len = 0;
     TCHAR *p = _ELM_mbstoucs2(_ELM_realpath(file), &len);
-    
+
     // chop off trailing slash
     if (p[len - 1] == L'/')
         p[len - 1] = L'\0';
-    
+
     int vol;
-    if ((vol = get_vol(p)) != -1) {
+    if ((vol = get_vol(p)) != -1)
+    {
         _ELM_disk_to_stat(vol, st);
         return _ELM_errnoparse(r, 0, -1);
     }
@@ -669,8 +621,9 @@ int _ELM_statvfs_r(struct _reent *r, const char *path, struct statvfs *buf)
     TCHAR *p = _ELM_mbstoucs2(_ELM_realpath(path), &len);
 
     int vol;
-    
-    if ((vol = get_vol(p) != -1)) {
+
+    if ((vol = get_vol(p) != -1))
+    {
         DWORD nclust;
         FATFS *fat = &_elm[vol];
         elm_error = f_getfree(p, &nclust, &fat);
@@ -685,11 +638,11 @@ int _ELM_statvfs_r(struct _reent *r, const char *path, struct statvfs *buf)
         buf->f_files = (fat->n_fatent - 2) * fat->csize;
         buf->f_ffree = nclust * fat->csize;
         buf->f_favail = buf->f_bfree;
-	    buf->f_fsid = fat->fs_type;
+        buf->f_fsid = fat->fs_type;
 
         buf->f_namemax = FF_MAX_LFN;
         buf->f_flag = ST_NOSUID /* No support for ST_ISUID and ST_ISGID file mode bits */
-		    | (FF_FS_READONLY ? ST_RDONLY /* Read only file system */ : 0 ) ;
+                      | (FF_FS_READONLY ? ST_RDONLY /* Read only file system */ : 0);
         return _ELM_errnoparse(r, 0, -1);
     }
     return -1;
