@@ -74,6 +74,7 @@ int _ELM_dirclose_r(struct _reent *r, DIR_ITER *dirState);
 int _ELM_statvfs_r(struct _reent *r, const char *path, struct statvfs *buf);
 int _ELM_ftruncate_r(struct _reent *r, void *fd, off_t len);
 int _ELM_fsync_r(struct _reent *r, void *fd);
+int _ELM_rmdir_r(struct _reent *r, const char *name);
 
 typedef struct _DIR_EX_
 {
@@ -81,6 +82,34 @@ typedef struct _DIR_EX_
     TCHAR name[FF_MAX_LFN + 1];
     size_t namesize;
 } DIR_EX;
+
+#define ELM_DEVOPTAB(mount)                     \
+    ({FF_MNT_FC,                                \
+         sizeof(FIL),                           \
+         _ELM_open_r,   /* fopen  */            \
+         _ELM_close_r,  /* fclose */            \
+         _ELM_write_r,  /* fwrite */            \
+         _ELM_read_r,   /* fread  */            \
+         _ELM_seek_r,   /* fseek  */            \
+         _ELM_fstat_r,  /* fstat  */            \
+         _ELM_stat_r,   /* stat   */            \
+         _ELM_link_r,   /* link   */            \
+         _ELM_unlink_r, /* unlink */            \
+         _ELM_chdir_r,  /* chdir  */            \
+         _ELM_rename_r, /* rename */            \
+         _ELM_mkdir_r,  /* mkdir  */            \
+         sizeof(DIR_EX),                        \
+         _ELM_diropen_r,   /* diropen   */      \
+         _ELM_dirreset_r,  /* dirreset  */      \
+         _ELM_dirnext_r,   /* dirnext   */      \
+         _ELM_dirclose_r,  /* dirclose  */      \
+         _ELM_statvfs_r,   /* statvfs   */      \
+         _ELM_ftruncate_r, /* ftruncate */      \
+         _ELM_fsync_r,     /* fsync     */      \
+         NULL,             /* device data */    \
+         NULL,                                  \
+         NULL,                                  \
+         _ELM_unlink_r})                        \
 
 static const devoptab_t dotab_elm[FF_VOLUMES] =
     {
@@ -108,7 +137,9 @@ static const devoptab_t dotab_elm[FF_VOLUMES] =
          _ELM_fsync_r,     /* fsync     */
          NULL,             /* Device data */
          NULL,
-         NULL},
+         NULL,
+         _ELM_rmdir_r     /* rmdir */
+         },  
         {FF_MNT_SD,
          sizeof(FIL),
          _ELM_open_r,   /* fopen  */
@@ -133,7 +164,9 @@ static const devoptab_t dotab_elm[FF_VOLUMES] =
          _ELM_fsync_r,     /* fsync     */
          NULL,             /* Device data */
          NULL,
-         NULL}};
+         NULL,
+         _ELM_rmdir_r}
+         };  /* rmdir */
 
 static TCHAR CvtBuf[FF_MAX_LFN + 1];
 
@@ -467,9 +500,23 @@ int _ELM_link_r(struct _reent *r, const char *existing, const char *newLink)
 int _ELM_unlink_r(struct _reent *r, const char *path)
 {
 #if (FF_FS_MINIMIZE < 1) && (!FF_FS_READONLY)
-    const TCHAR *p = _ELM_mbstoucs2(_ELM_realpath(path), NULL);
+    size_t len = 0;
+    TCHAR *p = _ELM_mbstoucs2(_ELM_realpath(path), &len);
+    if (p[len - 1] == L'/')
+        p[len - 1] = L'\0';
+
     elm_error = f_unlink(p);
     return _ELM_errnoparse(r, 0, -1);
+#else
+    r->_errno = ENOSYS;
+    return -1;
+#endif
+}
+
+int _ELM_rmdir_r(struct _reent *r, const char *path)
+{
+#if !FF_FS_RPATH_DOTENTRY
+    return _ELM_unlink_r(r, path);
 #else
     r->_errno = ENOSYS;
     return -1;

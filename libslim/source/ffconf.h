@@ -162,7 +162,8 @@
 
 #define FF_FS_RPATH_DOTENTRY 1
 /* This option configures support for filtering dot entries "." and ".." in f_readdir.
-/  This option only takes effect when FF_FS_RPATH is >= 1.
+/  This option only takes effect when FF_FS_RPATH is >= 1. Enabling this also
+/  disables rmdir support.
 /  
 /   0: Dot entries are filtered out in f_readdir..
 /   1: Dot entries show up in f_readdir.

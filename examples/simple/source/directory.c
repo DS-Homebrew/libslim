@@ -41,6 +41,10 @@ int main(int argc, char **argv)
 		{
 			iprintf("chdir failed\n");
 		}
+		if (rmdir("sd:/test_dir/") != 0) {
+			nocashMessage("rmdir failed");
+			iprintf("rmdir failed\n");
+		}
 		DIR *pdir;
 		struct dirent *pent;
 
