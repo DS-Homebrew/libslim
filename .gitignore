@@ -4,3 +4,4 @@
 *.map
 *.elf
 *.nds
+examples/nds-hb-menu
