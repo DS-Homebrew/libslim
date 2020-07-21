@@ -296,7 +296,7 @@ ssize_t _ELM_write_r(struct _reent *r, void *fd, const char *ptr, size_t len)
 {
 #if !FF_FS_READONLY
     FIL *fp = (FIL *)fd;
-    unsigned int written;
+    UINT written = 0;
     elm_error = f_write(fp, ptr, len, &written);
     return _ELM_errnoparse(r, written, -1);
 #else
@@ -308,7 +308,7 @@ ssize_t _ELM_write_r(struct _reent *r, void *fd, const char *ptr, size_t len)
 ssize_t _ELM_read_r(struct _reent *r, void *fd, char *ptr, size_t len)
 {
     FIL *fp = (FIL *)fd;
-    UINT read;
+    UINT read = 0;
     elm_error = f_read(fp, ptr, len, &read);
     return _ELM_errnoparse(r, read, -1);
 }
