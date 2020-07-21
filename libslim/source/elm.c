@@ -308,7 +308,7 @@ ssize_t _ELM_write_r(struct _reent *r, void *fd, const char *ptr, size_t len)
 ssize_t _ELM_read_r(struct _reent *r, void *fd, char *ptr, size_t len)
 {
     FIL *fp = (FIL *)fd;
-    unsigned int read;
+    UINT read;
     elm_error = f_read(fp, ptr, len, &read);
     return _ELM_errnoparse(r, read, -1);
 }
