@@ -46,6 +46,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int elm_error;
 
 static FATFS _elm[FF_VOLUMES];
+static DWORD clmt[20]; 
 
 #if FF_MAX_SS == 512 /* Single sector size */
 #define ELM_SS(fs) 512U
@@ -282,6 +283,18 @@ int _ELM_open_r(struct _reent *r, void *fileStruct, const char *path, int flags,
     {
         elm_error = f_lseek(fp, fp->obj.objsize);
     }
+#if FF_USE_FASTSEEK
+    if (elm_error == FR_OK)
+    {
+        fp->cltbl = clmt;
+        clmt[0] = 20;
+        elm_error = f_lseek(fp, CREATE_LINKMAP);
+    }
+    if (elm_error == FR_OK)
+    {
+        elm_error = f_lseek(fp, 0);
+    }
+#endif
     return _ELM_errnoparse(r, (int)fp, -1);
 }
 
@@ -556,9 +569,6 @@ DIR_ITER *_ELM_diropen_r(struct _reent *r, DIR_ITER *dirState, const char *path)
     memcpy(dir->name, (void *)p, (len + 1) * sizeof(TCHAR));
     dir->namesize = len + 1;
     elm_error = f_opendir(&(dir->dir), p);
-    if (elm_error != FR_OK)
-        return (DIR_ITER *)_ELM_errnoparse(r, (int)dirState, 0);
-    elm_error = f_readdir(&(dir->dir), NULL);
     return (DIR_ITER *)_ELM_errnoparse(r, (int)dirState, 0);
 #else
     r->_errno = ENOSYS;

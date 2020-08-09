@@ -174,7 +174,7 @@ typedef struct {
 	LBA_t	bitbase;		/* Allocation bitmap base sector */
 #endif
 	LBA_t	winsect;		/* Current sector appearing in the win[] */
-	BYTE	win[FF_MAX_SS];	/* Disk access window for Directory, FAT (and file data at tiny cfg) */
+	BYTE	win[FF_MAX_SS] __attribute__((aligned(32)));	/* Disk access window for Directory, FAT (and file data at tiny cfg) */
 } FATFS;
 
 
@@ -233,7 +233,7 @@ typedef struct {
 	DWORD	clust;			/* Current cluster */
 	LBA_t	sect;			/* Current sector (0:Read operation has terminated) */
 	BYTE*	dir;			/* Pointer to the directory item in the win[] */
-	BYTE	fn[12];			/* SFN (in/out) {body[8],ext[3],status[1]} */
+	BYTE	fn[12] __attribute__((aligned(32)));			/* SFN (in/out) {body[8],ext[3],status[1]} */
 #if FF_USE_LFN
 	DWORD	blk_ofs;		/* Offset of current entry block being processed (0xFFFFFFFF:Invalid) */
 #endif
@@ -252,8 +252,8 @@ typedef struct {
 	WORD	ftime;			/* Modified time */
 	BYTE	fattrib;		/* File attribute */
 #if FF_USE_LFN
-	TCHAR	altname[FF_SFN_BUF + 1];/* Altenative file name */
-	TCHAR	fname[FF_LFN_BUF + 1];	/* Primary file name */
+	TCHAR	altname[FF_SFN_BUF + 1] __attribute__((aligned(32)));/* Altenative file name */
+	TCHAR	fname[FF_LFN_BUF + 1] __attribute__((aligned(32)));	/* Primary file name */
 #else
 	TCHAR	fname[12 + 1] __attribute__((aligned(32)));	/* File name */
 #endif
