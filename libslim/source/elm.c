@@ -46,7 +46,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int elm_error;
 
 static FATFS _elm[FF_VOLUMES];
-static DWORD clmt[20]; 
+// static DWORD clmt[20];
 
 #if FF_MAX_SS == 512 /* Single sector size */
 #define ELM_SS(fs) 512U
@@ -118,7 +118,7 @@ static const devoptab_t dotab_elm[FF_VOLUMES] =
     {
         ELM_DEVOPTAB(FF_MNT_FC),
         ELM_DEVOPTAB(FF_MNT_SD),
-    };
+};
 
 static TCHAR CvtBuf[FF_MAX_LFN + 1];
 
@@ -193,7 +193,7 @@ static size_t _ELM_ucs2tombs(char *dst, const TCHAR *src)
     return count;
 }
 
-int _ELM_errnoparse(struct _reent *r, int suc, int fail)
+ssize_t _ELM_errnoparse(struct _reent *r, ssize_t suc, int fail)
 {
     int ret = fail;
     switch (elm_error)
@@ -322,50 +322,45 @@ ssize_t _ELM_read_r(struct _reent *r, void *fd, char *ptr, size_t len)
 {
     FIL *fp = (FIL *)fd;
     UINT read = 0;
-    elm_error = f_read(fp, ptr, len, &read);
-    return _ELM_errnoparse(r, read, -1);
+    elm_error = f_read(fp, ptr, (UINT)len, &read);
+    return (_ELM_errnoparse(r, read, -1) == -1 ? -1 : (ssize_t)read);
 }
 
-off_t _ELM_seek_r(struct _reent *r, void *fd, off_t pos, int dir)
+off_t _ELM_seek_r(struct _reent *r, void *fd, off_t pos, int whence)
 {
 #if FF_FS_MINIMIZE < 3
-    FIL *fp = (FIL *)fd;
-    int off = 0;
-    switch (dir)
+    FIL *f = (FIL *)fd;
+    FSIZE_t off;
+
+    switch (whence)
     {
     case SEEK_SET:
-        off = pos;
-        break;
-    case SEEK_END:
-        off = fp->obj.objsize - pos;
+        off = 0;
         break;
     case SEEK_CUR:
-        off = fp->fptr + pos;
+        off = f_tell(f);
         break;
+    case SEEK_END:
+        off = f_size(f);
+        break;
+    default:
+        r->_errno = EINVAL;
+        return -1;
     }
-    elm_error = f_lseek(fp, off);
-    return _ELM_errnoparse(r, fp->fptr, -1);
+
+    if (pos < 0 && off < -pos)
+    {
+        /* don't allow seek to before the beginning of the file */
+        r->_errno = EINVAL;
+        return -1;
+    }
+
+    elm_error = f_lseek(f, off+(FSIZE_t)pos);
+    return (_ELM_errnoparse(r, f->fptr, -1) == -1 ? -1 : (off_t)(off + (FSIZE_t)pos));
 #else
     r->_errno = ENOSYS;
     return -1;
 #endif
-}
-
-static time_t _ELM_filetime_to_time(uint16_t t, uint16_t d)
-{
-    struct tm timeParts;
-
-    timeParts.tm_hour = t >> 11;
-    timeParts.tm_min = (t >> 5) & 0x3f;
-    timeParts.tm_sec = (t & 0x1f) << 1;
-
-    timeParts.tm_mday = d & 0x1f;
-    timeParts.tm_mon = ((d >> 5) & 0x0f) - 1;
-    timeParts.tm_year = (d >> 9) + 80;
-
-    timeParts.tm_isdst = 0;
-
-    return mktime(&timeParts);
 }
 
 int _ELM_fstat_r(struct _reent *r, void *fd, struct stat *st)
@@ -385,16 +380,31 @@ int _ELM_fstat_r(struct _reent *r, void *fd, struct stat *st)
 #endif
 }
 
-static void _ELM_fileinfo_to_stat(const TCHAR *path, const FILINFO *fi, struct stat *st)
+static void _ELM_fileinfo_to_stat(const FILINFO *info, struct stat *st)
 {
-    memset(st, 0, sizeof(*st));
-    st->st_mode = (fi->fattrib & AM_DIR) ? S_IFDIR : 0;
+    /* Date of last modification */
+    struct tm date;
+    memset(st, 0, sizeof(struct stat));
+    date.tm_mday = info->fdate & 31;
+    date.tm_mon = ((info->fdate >> 5) & 15) - 1;
+    date.tm_year = ((info->fdate >> 9) & 127) - 1980 + 1900;
+
+    date.tm_sec = (info->ftime << 1) & 63;
+    date.tm_min = (info->ftime >> 5) & 63;
+    date.tm_hour = (info->ftime >> 11) & 31;
+
+    st->st_atime = st->st_mtime = st->st_ctime = mktime(&date);
+    st->st_size = (off_t)info->fsize;
     st->st_nlink = 1;
-    st->st_uid = 1;
-    st->st_gid = 2;
-    st->st_size = fi->fsize;
-    st->st_mtime = _ELM_filetime_to_time(fi->ftime, fi->fdate);
-    st->st_spare4[0] = fi->fattrib;
+
+    if (info->fattrib & AM_DIR)
+    {
+        st->st_mode = S_IFDIR | S_IRWXU | S_IRWXG | S_IRWXO;
+    }
+    else
+    {
+        st->st_mode = S_IFREG | S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
+    }
 }
 
 static int _ELM_chk_mounted(int disk)
@@ -448,7 +458,7 @@ int _ELM_stat_r(struct _reent *r, const char *file, struct stat *st)
     FILINFO fi;
     fi.fsize = sizeof(fi.fname) / sizeof(fi.fname[0]);
     elm_error = f_stat(p, &fi);
-    _ELM_fileinfo_to_stat(p, &fi, st);
+    _ELM_fileinfo_to_stat(&fi, st);
     return _ELM_errnoparse(r, 0, -1);
 #else
     r->_errno = ENOSYS;
@@ -600,7 +610,7 @@ int _ELM_dirnext_r(struct _reent *r, DIR_ITER *dirState, char *filename, struct 
     if (!fi.fname[0])
         return -1;
 #ifdef FF_USE_LFN
-    _ELM_ucs2tombs(filename, fi.fname[0] ? fi.fname : fi.fname);
+    _ELM_ucs2tombs(filename, fi.fname);
 #else
     strcpy(filename, fi.fname);
 #endif
@@ -611,7 +621,7 @@ int _ELM_dirnext_r(struct _reent *r, DIR_ITER *dirState, char *filename, struct 
         memcpy(path, dir->name, (dir->namesize - 1) * sizeof(TCHAR));
         path[dir->namesize - 1] = L'/';
         memcpy(path + dir->namesize, _ELM_mbstoucs2(filename, &len), (len + 1) * sizeof(TCHAR));
-        _ELM_fileinfo_to_stat(path, &fi, st);
+        _ELM_fileinfo_to_stat(&fi, st);
     }
     return 0;
 #else
