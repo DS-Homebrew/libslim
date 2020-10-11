@@ -52,7 +52,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "charset.h"
 
-static void configureArgv()
+static void __configureArgv()
 {
 #ifdef ARGV_SUPPORT
     if (__system_argv->argvMagic == ARGV_MAGIC && __system_argv->argc >= 1 && (strrchr(__system_argv->argv[0], '/') != NULL))
@@ -82,6 +82,12 @@ static void configureArgv()
         }
     }
 #endif
+}
+
+void configureArgv(const char *root)
+{
+    chdir(root);
+    __configureArgv();
 }
 
 bool fatUnmount(const char *mount)
@@ -114,7 +120,7 @@ bool fatInit(bool setArgvMagic)
         chdir("sd:/");
         if (setArgvMagic)
         {
-            configureArgv();
+            __configureArgv();
         }
         return sdMounted;
     }
@@ -123,7 +129,7 @@ bool fatInit(bool setArgvMagic)
         chdir("fat:/");
         if (setArgvMagic)
         {
-            configureArgv();
+            __configureArgv();
         }
         return fatMounted;
     }
