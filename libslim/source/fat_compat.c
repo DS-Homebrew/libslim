@@ -50,6 +50,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <strings.h>
 #endif
 
+#include "charset.h"
+
 static void configureArgv()
 {
 #ifdef ARGV_SUPPORT
@@ -85,7 +87,9 @@ static void configureArgv()
 bool fatUnmount(const char *mount)
 {
     RemoveDevice(mount);
-    if (f_mount(NULL, mount, 1) != FR_OK)
+    size_t len = 0;
+    TCHAR *m = _ELM_mbstoucs2(mount, &len);
+    if (f_mount(NULL, m, 1) != FR_OK)
     {
         return false;
     }
@@ -130,15 +134,21 @@ bool fatInit(bool setArgvMagic)
 void fatGetVolumeLabel(const char *mount, char *label)
 {
     int vol = get_vol(mount);
+    size_t len = 0;
     if (vol == -1)
         return;
-    f_getlabel(mount, label, NULL);
+    TCHAR label_buf[255] = {0};
+    TCHAR *p = _ELM_mbstoucs2(mount, &len);
+    f_getlabel(p, label_buf, NULL);
+    _ELM_ucs2tombs(label, label_buf);
 }
 
 int FAT_getAttr(const char *file)
 {
     FILINFO stat;
-    if (f_stat(file, &stat) == FR_OK)
+    size_t len = 0;
+    TCHAR *p = _ELM_mbstoucs2(file, &len);
+    if (f_stat(p, &stat) == FR_OK)
     {
         return stat.fattrib;
     }
@@ -147,7 +157,9 @@ int FAT_getAttr(const char *file)
 
 int FAT_setAttr(const char *file, uint8_t attr)
 {
-    if (f_chmod(file, attr, AM_RDO | AM_SYS | AM_HID) == FR_OK)
+    size_t len = 0;
+    TCHAR *p = _ELM_mbstoucs2(file, &len);
+    if (f_chmod(p, attr, AM_RDO | AM_SYS | AM_HID) == FR_OK)
     {
         return 0;
     }

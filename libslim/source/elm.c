@@ -43,6 +43,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <slim.h>
 #include <ffvolumes.h>
 
+#include "charset.h"
+
 int elm_error;
 
 static FATFS _elm[FF_VOLUMES];
@@ -120,78 +122,12 @@ static const devoptab_t dotab_elm[FF_VOLUMES] =
         ELM_DEVOPTAB(FF_MNT_SD),
 };
 
-static TCHAR CvtBuf[FF_MAX_LFN + 1];
-
 /**
  * Used to be needed to chop off fat: prefix.
  * Now we don't need it, but keep it around
  * as a macro just in case.
  */
 #define _ELM_realpath(path) (path)
-
-static TCHAR *_ELM_mbstoucs2(const char *src, size_t *len)
-{
-    mbstate_t ps = {0};
-    wchar_t tempChar;
-    int bytes;
-    TCHAR *dst = CvtBuf;
-    while (src)
-    {
-        bytes = mbrtowc(&tempChar, src, MB_CUR_MAX, &ps);
-        if (bytes > 0)
-        {
-            *dst = (TCHAR)tempChar;
-            src += bytes;
-            dst++;
-        }
-        else if (bytes == 0)
-        {
-            break;
-        }
-        else
-        {
-            dst = CvtBuf;
-            break;
-        }
-    }
-    *dst = '\0';
-    if (len)
-        *len = dst - CvtBuf;
-    return CvtBuf;
-}
-
-static size_t _ELM_ucs2tombs(char *dst, const TCHAR *src)
-{
-    mbstate_t ps = {0};
-    size_t count = 0;
-    int bytes;
-    char buff[MB_CUR_MAX];
-    int i;
-
-    while (*src != '\0')
-    {
-        bytes = wcrtomb(buff, *src, &ps);
-        if (bytes < 0)
-        {
-            return -1;
-        }
-        if (bytes > 0)
-        {
-            for (i = 0; i < bytes; i++)
-            {
-                *dst++ = buff[i];
-            }
-            src++;
-            count += bytes;
-        }
-        else
-        {
-            break;
-        }
-    }
-    *dst = L'\0';
-    return count;
-}
 
 ssize_t _ELM_errnoparse(struct _reent *r, ssize_t suc, int fail)
 {
@@ -241,40 +177,67 @@ ssize_t _ELM_errnoparse(struct _reent *r, ssize_t suc, int fail)
     return ret;
 }
 
+// static const struct
+// {
+//     int posix_flag;
+//     BYTE ff_flag;
+// } flag_mappings[] = {
+//     {O_APPEND, FA_OPEN_APPEND},
+//     {O_CREAT, FA_OPEN_ALWAYS},
+//     {O_EXCL, FA_CREATE_NEW},
+//     {O_TRUNC, FA_CREATE_ALWAYS},
+//     {O_RDONLY, FA_READ},
+//     {O_WRONLY, FA_WRITE},
+//     {O_RDWR, FA_READ | FA_WRITE},
+// };
+
 int _ELM_open_r(struct _reent *r, void *fileStruct, const char *path, int flags, int mode)
 {
     FIL *fp = (FIL *)fileStruct;
-    BYTE m = 0;
+    BYTE ff_flags = 0;
     BOOL truncate = false;
     const TCHAR *p = _ELM_mbstoucs2(_ELM_realpath(path), NULL);
+
+    if ((flags & O_RDONLY & O_WRONLY) || ((flags & O_RDWR) & (O_RDONLY | O_WRONLY))) {
+        r->_errno = EINVAL;
+        return -1;
+    }
+    if (flags & O_RDONLY & O_APPEND) {
+        r->_errno = EINVAL;
+        return -1;
+    }
+    
     if (flags & O_WRONLY)
     {
-        m |= FA_WRITE;
+        ff_flags |= FA_WRITE;
     }
     else if (flags & O_RDWR)
     {
-        m |= FA_READ | FA_WRITE;
+        ff_flags |= FA_READ | FA_WRITE;
     }
     else
     {
-        m |= FA_READ;
+        ff_flags |= FA_READ;
     }
+
     if (flags & O_CREAT)
     {
         if (flags & O_EXCL)
-            m |= FA_CREATE_NEW;
+            ff_flags |= FA_CREATE_NEW;
         else if (flags & O_TRUNC)
-            m |= FA_CREATE_ALWAYS;
+            ff_flags |= FA_CREATE_ALWAYS;
         else
-            m |= FA_OPEN_ALWAYS;
+            ff_flags |= FA_OPEN_ALWAYS;
     }
     else
     {
         if (flags & O_TRUNC)
             truncate = true;
-        m |= FA_OPEN_EXISTING;
+        ff_flags |= FA_OPEN_EXISTING;
     }
-    elm_error = f_open(fp, p, m);
+
+    
+    elm_error = f_open(fp, p, ff_flags);
     if (elm_error == FR_OK && truncate)
     {
         elm_error = f_truncate(fp);
@@ -355,7 +318,7 @@ off_t _ELM_seek_r(struct _reent *r, void *fd, off_t pos, int whence)
         return -1;
     }
 
-    elm_error = f_lseek(f, off+(FSIZE_t)pos);
+    elm_error = f_lseek(f, off + (FSIZE_t)pos);
     return (_ELM_errnoparse(r, f->fptr, -1) == -1 ? -1 : (off_t)(off + (FSIZE_t)pos));
 #else
     r->_errno = ENOSYS;
@@ -449,7 +412,9 @@ int _ELM_stat_r(struct _reent *r, const char *file, struct stat *st)
         p[len - 1] = L'\0';
 
     int vol;
-    if ((vol = get_vol(p)) != -1)
+
+
+    if ((vol = get_vol(file)) != -1)
     {
         _ELM_disk_to_stat(vol, st);
         return _ELM_errnoparse(r, 0, -1);
@@ -502,12 +467,12 @@ int _ELM_chdir_r(struct _reent *r, const char *path)
 {
 #if FF_FS_RPATH
     size_t len = 0;
+    char *drive = strchr(path, ':');
     TCHAR *p = _ELM_mbstoucs2(_ELM_realpath(path), &len);
-    TCHAR *drive = strchr(p, ':');
 
     if (drive != NULL)
     {
-        TCHAR _drive = drive[1];
+        char _drive = drive[1];
         drive[1] = '\0';
         elm_error = f_chdrive(p);
         if (elm_error)
@@ -642,7 +607,7 @@ int _ELM_statvfs_r(struct _reent *r, const char *path, struct statvfs *buf)
 
     int vol;
 
-    if ((vol = get_vol(p) != -1))
+    if ((vol = get_vol(path) != -1))
     {
         DWORD nclust;
         FATFS *fat = &_elm[vol];
@@ -715,7 +680,10 @@ bool fatMountSimple(const char *mount, const DISC_INTERFACE *interface)
     if (vol == -1)
         return false;
     configure_disc_io(vol, interface);
-    if (f_mount(&(_elm[vol]), mount, 1) != FR_OK)
+
+    size_t len = 0;
+    TCHAR *m = _ELM_mbstoucs2(mount, &len);
+    if (f_mount(&(_elm[vol]), m, 1) != FR_OK)
     {
         return false;
     }

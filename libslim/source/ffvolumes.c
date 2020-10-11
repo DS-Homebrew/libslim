@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <string.h>
 
+#include "charset.h"
 #include "ffvolumes.h"
 
 static const DISC_INTERFACE *_disc_io[FF_VOLUMES] = {NULL};
@@ -79,19 +80,22 @@ const DISC_INTERFACE *get_disc_io(volno_t vol)
 extern int get_ldnumber(const TCHAR** path);
 extern const char* const VolumeStr[FF_VOLUMES];
 
-volno_t get_vol(const TCHAR* mount)
+volno_t get_vol(const char* mount)
 {
     int mnt_len = strlen(mount);
     if (mnt_len < 2)
         return -1;
-    
-    TCHAR end_chr = mount[mnt_len - 1];
+    size_t len = 0;
+    char end_chr = mount[mnt_len - 1];
     if (end_chr == ':' || (end_chr == '/' && mount[mnt_len - 2] == ':'))
-        return get_ldnumber(&mount);
+    {
+        const TCHAR *m = _ELM_mbstoucs2(mount, &len);
+        return get_ldnumber(&m);
+    }
     return -1;
 }
 
-const TCHAR* const get_mnt(volno_t vol)
+const char* const get_mnt(volno_t vol)
 {
     if (!VALID_DISK(vol))
         return NULL;
