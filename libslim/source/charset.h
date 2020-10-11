@@ -31,8 +31,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ff.h"
 
 // Converts from TCHAR to char
-size_t _ELM_ucs2tombs(char *dst, const TCHAR *src);
+// returns the length of the converted string
+size_t utf16tombs(char *dst, const TCHAR *src);
 
 // Converts from char to TCHAR
-TCHAR *_ELM_mbstoucs2(const char *src, size_t *len);
+//
+// returns a pointer to the buffer containing
+// the utf16 output.
+// 
+// stores the length of the converted string into len.
+TCHAR *mbstoutf16(const char *src, size_t *len);
 #endif
