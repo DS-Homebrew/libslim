@@ -89,7 +89,7 @@ volno_t get_vol(const char* mount)
     char end_chr = mount[mnt_len - 1];
     if (end_chr == ':' || (end_chr == '/' && mount[mnt_len - 2] == ':'))
     {
-        const TCHAR *m = _ELM_mbstoucs2(mount, &len);
+        const TCHAR *m = mbstoutf16(mount, &len);
         return get_ldnumber(&m);
     }
     return -1;
