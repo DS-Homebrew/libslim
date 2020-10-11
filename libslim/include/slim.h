@@ -91,6 +91,16 @@ extern "C"
    */
   int FAT_setAttr(const char *file, uint8_t attr);
 
+  /**
+   * Configures ARGV after mounting with fatMountSimple.
+   * 
+   * Calling this function will change the current directory.
+   * Do not call this function after calling fatInit(true) or fatInitDefault().
+   * 
+   * root should either be `sd:/` or `fat:/`. Any other path is undefined behaviour.
+   */
+  void configureArgv(const char *root);
+
 // File attributes
 #define ATTR_ARCHIVE    0x20   // Archive
 #define ATTR_DIRECTORY  0x10 // Directory
