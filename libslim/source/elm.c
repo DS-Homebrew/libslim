@@ -286,7 +286,7 @@ ssize_t _ELM_read_r(struct _reent *r, void *fd, char *ptr, size_t len)
     FIL *fp = (FIL *)fd;
     UINT read = 0;
     elm_error = f_read(fp, ptr, (UINT)len, &read);
-    return (_ELM_errnoparse(r, read, -1) == -1 ? -1 : (ssize_t)read);
+    return _ELM_errnoparse(r, read, -1);
 }
 
 off_t _ELM_seek_r(struct _reent *r, void *fd, off_t pos, int whence)
@@ -298,13 +298,13 @@ off_t _ELM_seek_r(struct _reent *r, void *fd, off_t pos, int whence)
     switch (whence)
     {
     case SEEK_SET:
-        off = 0;
+        off = pos;
         break;
     case SEEK_CUR:
-        off = f_tell(f);
+        off = f_tell(f) + pos;
         break;
     case SEEK_END:
-        off = f_size(f);
+        off = f_size(f) - pos;
         break;
     default:
         r->_errno = EINVAL;
@@ -318,8 +318,8 @@ off_t _ELM_seek_r(struct _reent *r, void *fd, off_t pos, int whence)
         return -1;
     }
 
-    elm_error = f_lseek(f, off + (FSIZE_t)pos);
-    return (_ELM_errnoparse(r, f->fptr, -1) == -1 ? -1 : (off_t)(off + (FSIZE_t)pos));
+    elm_error = f_lseek(f, off);
+    return (off_t)_ELM_errnoparse(r, f->fptr, -1);
 #else
     r->_errno = ENOSYS;
     return -1;
