@@ -665,14 +665,6 @@ int _ELM_fsync_r(struct _reent *r, void *fd)
 #endif
 }
 
-WCHAR ff_convert(WCHAR src, UINT dir)
-{
-    (void)dir;
-    if (src >= 0x80)
-        src = '+';
-    return src;
-}
-
 // This has to be here for _ELM_chk_mounted.
 bool fatMountSimple(const char *mount, const DISC_INTERFACE *interface)
 {

@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <wctype.h>
 
-static TCHAR CvtBuf[FF_MAX_LFN + 1];
+static TCHAR CvtBuf[FF_MAX_LFN + 1] __attribute__((aligned(32)));
 
 TCHAR *mbstoutf16(const char *src, size_t *len)
 {

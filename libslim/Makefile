@@ -29,15 +29,14 @@ INCLUDES	:=	include source
 #---------------------------------------------------------------------------------
 ARCH	:=	-mthumb -mthumb-interwork
 
-CFLAGS	:=	-g -Wall -Os\
-		-march=armv5te -mtune=arm946e-s \
-		-fomit-frame-pointer -ffast-math \
+CFLAGS	:=	-g -Wall -O2 \
+		-ffunction-sections -fdata-sections \
+		-march=armv5te -mtune=arm946e-s -fomit-frame-pointer \
+		-ffast-math \
 		$(ARCH)
 
 CFLAGS	+=	$(INCLUDE) -DARM9 -fno-dwarf2-cfi-asm
-ifeq ($(BUILD),dldi)
-CFLAGS	+=	-DUSE_DLDI
-endif
+
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions
 
 ASFLAGS	:=	-g $(ARCH) -march=armv5te -mtune=arm946e-s

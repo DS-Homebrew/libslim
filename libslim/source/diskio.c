@@ -30,7 +30,7 @@ typedef struct _CACHE_
 	DWORD drive;
 } CACHE;
 
-static CACHE _cache[CACHE_SIZE];
+static CACHE _cache[CACHE_SIZE]  __attribute__((aligned(32)));
 static DWORD accessCounter = 0;
 
 static inline DWORD stamp(void) { return ++accessCounter; }
