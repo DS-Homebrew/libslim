@@ -78,6 +78,7 @@ static void add_to_cache(DWORD drv, DWORD sector, BYTE *buff)
 		free_item = oldest_item;
 	if (free_item < 0)
 		return; //ALGORITHM ERROR
+	toncset(_cache[free_item].data, 0, SECTOR_SIZE);
 	tonccpy(_cache[free_item].data, buff, SECTOR_SIZE);
 	_cache[free_item].valid = true;
 	_cache[free_item].sector = sector;
@@ -176,11 +177,13 @@ DRESULT disk_write(
 	BYTE count		  /* Number of sectors to write (1..255) */
 )
 {
-	invalidate_cache(drv, sector, count);
 	const DISC_INTERFACE *disc_io = NULL;
 	if ((disc_io = get_disc_io(drv)) != NULL)
 	{
-		return disc_io->writeSectors(sector, count, buff) ? RES_OK : RES_ERROR;
+		
+		DRESULT res = disc_io->writeSectors(sector, count, buff) ? RES_OK : RES_ERROR;
+		invalidate_cache(drv, sector, count);
+		return res;
 	}
 	return RES_PARERR;
 }
