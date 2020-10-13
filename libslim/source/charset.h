@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Converts from TCHAR to char
 // returns the length of the converted string
-size_t utf16tombs(char *dst, const TCHAR *src);
+size_t ucs2tombs(char *dst, const TCHAR *src);
 
 // Converts from char to TCHAR
 //
@@ -40,5 +40,5 @@ size_t utf16tombs(char *dst, const TCHAR *src);
 // the utf16 output.
 // 
 // stores the length of the converted string into len.
-TCHAR *mbstoutf16(const char *src, size_t *len);
+TCHAR *mbstoucs2(const char *src, size_t *len);
 #endif

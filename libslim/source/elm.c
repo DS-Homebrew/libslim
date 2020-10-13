@@ -197,7 +197,7 @@ int _ELM_open_r(struct _reent *r, void *fileStruct, const char *path, int flags,
     FIL *fp = (FIL *)fileStruct;
     BYTE ff_flags = 0;
     BOOL truncate = false;
-    const TCHAR *p = mbstoutf16(_ELM_realpath(path), NULL);
+    const TCHAR *p = mbstoucs2(_ELM_realpath(path), NULL);
 
     if ((flags & O_RDONLY & O_WRONLY) || ((flags & O_RDWR) & (O_RDONLY | O_WRONLY))) {
         r->_errno = EINVAL;
@@ -406,7 +406,7 @@ int _ELM_stat_r(struct _reent *r, const char *file, struct stat *st)
 {
 #if FF_FS_MINIMIZE < 1
     size_t len = 0;
-    TCHAR *p = mbstoutf16(_ELM_realpath(file), &len);
+    TCHAR *p = mbstoucs2(_ELM_realpath(file), &len);
 
     // chop off trailing slash
     if (p[len - 1] == L'/')
@@ -442,7 +442,7 @@ int _ELM_unlink_r(struct _reent *r, const char *path)
 {
 #if (FF_FS_MINIMIZE < 1) && (!FF_FS_READONLY)
     size_t len = 0;
-    TCHAR *p = mbstoutf16(_ELM_realpath(path), &len);
+    TCHAR *p = mbstoucs2(_ELM_realpath(path), &len);
     if (p[len - 1] == L'/')
         p[len - 1] = L'\0';
 
@@ -469,7 +469,7 @@ int _ELM_chdir_r(struct _reent *r, const char *path)
 #if FF_FS_RPATH
     size_t len = 0;
     char *drive = strchr(path, ':');
-    TCHAR *p = mbstoutf16(_ELM_realpath(path), &len);
+    TCHAR *p = mbstoucs2(_ELM_realpath(path), &len);
 
     if (drive != NULL)
     {
@@ -505,8 +505,8 @@ int _ELM_rename_r(struct _reent *r, const char *path, const char *pathp)
 #if (FF_FS_MINIMIZE < 1) && (!FF_FS_READONLY)
     TCHAR p[FF_MAX_LFN + 1];
     const TCHAR *pp;
-    tonccpy(p, mbstoutf16(_ELM_realpath(path), NULL), sizeof(p));
-    pp = mbstoutf16(_ELM_realpath(pathp), NULL);
+    tonccpy(p, mbstoucs2(_ELM_realpath(path), NULL), sizeof(p));
+    pp = mbstoucs2(_ELM_realpath(pathp), NULL);
     if ((pp[0] == L'0' || pp[0] == L'1') && pp[1] == L':')
         pp += 2;
     elm_error = f_rename(p, pp);
@@ -520,7 +520,7 @@ int _ELM_rename_r(struct _reent *r, const char *path, const char *pathp)
 int _ELM_mkdir_r(struct _reent *r, const char *path, int mode)
 {
 #if (FF_FS_MINIMIZE < 1) && (!FF_FS_READONLY)
-    const TCHAR *p = mbstoutf16(_ELM_realpath(path), NULL);
+    const TCHAR *p = mbstoucs2(_ELM_realpath(path), NULL);
     elm_error = f_mkdir(p);
     return _ELM_errnoparse(r, 0, -1);
 #else
@@ -533,7 +533,7 @@ DIR_ITER *_ELM_diropen_r(struct _reent *r, DIR_ITER *dirState, const char *path)
 {
 #if FF_FS_MINIMIZE < 2
     size_t len = 0;
-    TCHAR *p = mbstoutf16(_ELM_realpath(path), &len);
+    TCHAR *p = mbstoucs2(_ELM_realpath(path), &len);
 
     if (len > 1 && p[len - 1] == L'/')
     {
@@ -576,7 +576,7 @@ int _ELM_dirnext_r(struct _reent *r, DIR_ITER *dirState, char *filename, struct 
     if (!fi.fname[0])
         return -1;
 #ifdef FF_USE_LFN
-    utf16tombs(filename, fi.fname);
+    ucs2tombs(filename, fi.fname);
 #else
     strcpy(filename, fi.fname);
 #endif
@@ -586,7 +586,7 @@ int _ELM_dirnext_r(struct _reent *r, DIR_ITER *dirState, char *filename, struct 
         size_t len = 0;
         tonccpy(path, dir->name, (dir->namesize - 1) * sizeof(TCHAR));
         path[dir->namesize - 1] = L'/';
-        tonccpy(path + dir->namesize, mbstoutf16(filename, &len), (len + 1) * sizeof(TCHAR));
+        tonccpy(path + dir->namesize, mbstoucs2(filename, &len), (len + 1) * sizeof(TCHAR));
         _ELM_fileinfo_to_stat(&fi, st);
     }
     return 0;
@@ -604,7 +604,7 @@ int _ELM_dirclose_r(struct _reent *r, DIR_ITER *dirState)
 int _ELM_statvfs_r(struct _reent *r, const char *path, struct statvfs *buf)
 {
     size_t len = 0;
-    TCHAR *p = mbstoutf16(_ELM_realpath(path), &len);
+    TCHAR *p = mbstoucs2(_ELM_realpath(path), &len);
 
     int vol;
 
@@ -675,7 +675,7 @@ bool fatMountSimple(const char *mount, const DISC_INTERFACE *interface)
     configure_disc_io(vol, interface);
 
     size_t len = 0;
-    TCHAR *m = mbstoutf16(mount, &len);
+    TCHAR *m = mbstoucs2(mount, &len);
     if (f_mount(&(_elm[vol]), m, 1) != FR_OK)
     {
         return false;

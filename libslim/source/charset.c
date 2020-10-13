@@ -8,7 +8,7 @@
 
 static TCHAR CvtBuf[FF_MAX_LFN + 1] __attribute__((aligned(32)));
 
-TCHAR *mbstoutf16(const char *src, size_t *len)
+TCHAR *mbstoucs2(const char *src, size_t *len)
 {
     mbstate_t ps = {0};
     wchar_t tempChar;
@@ -39,7 +39,7 @@ TCHAR *mbstoutf16(const char *src, size_t *len)
     return CvtBuf;
 }
 
-size_t utf16tombs(char *dst, const TCHAR *src)
+size_t ucs2tombs(char *dst, const TCHAR *src)
 {
     mbstate_t ps = {0};
     size_t count = 0;

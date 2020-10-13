@@ -94,7 +94,7 @@ bool fatUnmount(const char *mount)
 {
     RemoveDevice(mount);
     size_t len = 0;
-    TCHAR *m = mbstoutf16(mount, &len);
+    TCHAR *m = mbstoucs2(mount, &len);
     if (f_mount(NULL, m, 1) != FR_OK)
     {
         return false;
@@ -144,16 +144,16 @@ void fatGetVolumeLabel(const char *mount, char *label)
     if (vol == -1)
         return;
     TCHAR label_buf[255] = {0};
-    TCHAR *p = mbstoutf16(mount, &len);
+    TCHAR *p = mbstoucs2(mount, &len);
     f_getlabel(p, label_buf, NULL);
-    utf16tombs(label, label_buf);
+    ucs2tombs(label, label_buf);
 }
 
 int FAT_getAttr(const char *file)
 {
     FILINFO stat;
     size_t len = 0;
-    TCHAR *p = mbstoutf16(file, &len);
+    TCHAR *p = mbstoucs2(file, &len);
     if (f_stat(p, &stat) == FR_OK)
     {
         return stat.fattrib;
@@ -164,7 +164,7 @@ int FAT_getAttr(const char *file)
 int FAT_setAttr(const char *file, uint8_t attr)
 {
     size_t len = 0;
-    TCHAR *p = mbstoutf16(file, &len);
+    TCHAR *p = mbstoucs2(file, &len);
     if (f_chmod(p, attr, AM_RDO | AM_SYS | AM_HID) == FR_OK)
     {
         return 0;
