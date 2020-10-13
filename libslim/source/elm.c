@@ -43,6 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <slim.h>
 #include <ffvolumes.h>
 
+#include "tonccpy.h"
 #include "charset.h"
 
 int elm_error;
@@ -504,7 +505,7 @@ int _ELM_rename_r(struct _reent *r, const char *path, const char *pathp)
 #if (FF_FS_MINIMIZE < 1) && (!FF_FS_READONLY)
     TCHAR p[FF_MAX_LFN + 1];
     const TCHAR *pp;
-    memcpy(p, mbstoutf16(_ELM_realpath(path), NULL), sizeof(p));
+    tonccpy(p, mbstoutf16(_ELM_realpath(path), NULL), sizeof(p));
     pp = mbstoutf16(_ELM_realpath(pathp), NULL);
     if ((pp[0] == L'0' || pp[0] == L'1') && pp[1] == L':')
         pp += 2;
@@ -541,7 +542,7 @@ DIR_ITER *_ELM_diropen_r(struct _reent *r, DIR_ITER *dirState, const char *path)
     }
 
     DIR_EX *dir = (DIR_EX *)dirState->dirStruct;
-    memcpy(dir->name, (void *)p, (len + 1) * sizeof(TCHAR));
+    tonccpy(dir->name, (void *)p, (len + 1) * sizeof(TCHAR));
     dir->namesize = len + 1;
     elm_error = f_opendir(&(dir->dir), p);
     return (DIR_ITER *)_ELM_errnoparse(r, (int)dirState, 0);
@@ -583,9 +584,9 @@ int _ELM_dirnext_r(struct _reent *r, DIR_ITER *dirState, char *filename, struct 
     {
         TCHAR path[FF_MAX_LFN + 1];
         size_t len = 0;
-        memcpy(path, dir->name, (dir->namesize - 1) * sizeof(TCHAR));
+        tonccpy(path, dir->name, (dir->namesize - 1) * sizeof(TCHAR));
         path[dir->namesize - 1] = L'/';
-        memcpy(path + dir->namesize, mbstoutf16(filename, &len), (len + 1) * sizeof(TCHAR));
+        tonccpy(path + dir->namesize, mbstoutf16(filename, &len), (len + 1) * sizeof(TCHAR));
         _ELM_fileinfo_to_stat(&fi, st);
     }
     return 0;

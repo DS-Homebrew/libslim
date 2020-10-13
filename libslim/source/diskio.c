@@ -7,6 +7,7 @@
 
 #include "ff.h"
 #include "ffvolumes.h"
+#include "tonccpy.h"
 
 #include "diskio.h"
 #include <stdio.h>
@@ -44,7 +45,7 @@ static BOOL read_from_cache(DWORD drv, DWORD sector, BYTE *buff)
 		if (_cache[ii].valid && _cache[ii].drive == drv && _cache[ii].sector == sector)
 		{
 			_cache[ii].stamp = stamp();
-			memcpy(buff, _cache[ii].data, SECTOR_SIZE);
+			tonccpy(buff, _cache[ii].data, SECTOR_SIZE);
 			res = true;
 			break;
 		}
@@ -77,7 +78,7 @@ static void add_to_cache(DWORD drv, DWORD sector, BYTE *buff)
 		free_item = oldest_item;
 	if (free_item < 0)
 		return; //ALGORITHM ERROR
-	memcpy(_cache[free_item].data, buff, SECTOR_SIZE);
+	tonccpy(_cache[free_item].data, buff, SECTOR_SIZE);
 	_cache[free_item].valid = true;
 	_cache[free_item].sector = sector;
 	_cache[free_item].stamp = stamp();
