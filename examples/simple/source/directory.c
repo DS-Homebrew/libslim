@@ -71,13 +71,13 @@ int main(int argc, char **argv)
 				
 				if (pent->d_type == DT_DIR)
 				{
-					sprintf(buffer, "[%s] (%d): %ld/%ld\n", pent->d_name, FAT_getAttr(pent->d_name), st.st_ino, pent->d_ino);
+					sprintf(buffer, "[%s] (%d): %ld\n", pent->d_name, FAT_getAttr(pent->d_name), st.st_ino);
 					printf(buffer);
 					nocashWrite(buffer, strlen(buffer) - 1);
 				}
 				else
 				{
-					sprintf(buffer, "%s (%d): %ld/%ld\n", pent->d_name, FAT_getAttr(pent->d_name), st.st_ino, pent->d_ino);
+					sprintf(buffer, "%s (%d): %ld\n", pent->d_name, FAT_getAttr(pent->d_name), st.st_ino);
 					printf(buffer);
 					nocashWrite(buffer, strlen(buffer) - 1);
 				}
