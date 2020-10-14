@@ -45,14 +45,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <slim.h>
 #include <ffvolumes.h>
 
+
 #ifdef ARGV_SUPPORT
 #include <nds/system.h>
 #include <strings.h>
+#include <limits.h>
 #endif
 
 #include "charset.h"
 
-static void __configureArgv()
+void configureArgv()
 {
 #ifdef ARGV_SUPPORT
     if (__system_argv->argvMagic == ARGV_MAGIC && __system_argv->argc >= 1 && (strrchr(__system_argv->argv[0], '/') != NULL))
@@ -65,7 +67,7 @@ static void __configureArgv()
 
             if (get_disc_io(i) != NULL && strncasecmp(__system_argv->argv[0], mount, strlen(mount)))
             {
-                char filePath[MAX_FILENAME_LENGTH];
+                char filePath[PATH_MAX];
                 char *lastSlash;
                 strcpy(filePath, __system_argv->argv[0]);
                 lastSlash = strrchr(filePath, '/');
@@ -82,12 +84,6 @@ static void __configureArgv()
         }
     }
 #endif
-}
-
-void configureArgv(const char *root)
-{
-    chdir(root);
-    __configureArgv();
 }
 
 bool fatUnmount(const char *mount)
@@ -110,31 +106,18 @@ bool fatInitDefault(void)
 bool fatInit(bool setArgvMagic)
 {
     bool sdMounted = false, fatMounted = false;
-    fatMounted = fatMountSimple(FF_MNT_FC ":", dldiGetInternal());
     if (isDSiMode())
     {
         sdMounted = fatMountSimple(FF_MNT_SD ":", get_io_dsisd());
     }
-    if (sdMounted)
+    fatMounted = fatMountSimple(FF_MNT_FC ":", dldiGetInternal());
+
+    if (setArgvMagic)
     {
-        chdir("sd:/");
-        if (setArgvMagic)
-        {
-            __configureArgv();
-        }
-        return sdMounted;
-    }
-    else if (fatMounted)
-    {
-        chdir("fat:/");
-        if (setArgvMagic)
-        {
-            __configureArgv();
-        }
-        return fatMounted;
+        configureArgv();
     }
 
-    return false;
+    return sdMounted ? sdMounted : fatMounted;
 }
 
 void fatGetVolumeLabel(const char *mount, char *label)
