@@ -53,37 +53,35 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "charset.h"
 
-void configureArgv()
+bool configureDefault(const char *root)
 {
-    for (int i = FF_VOLUMES - 1; i >= 0; i--)
-    {
-        const char *mount = get_mnt(i);
-        if (!mount)
-            continue;
-        char filePath[PATH_MAX];
-        strcpy(filePath, mount);
-        strcat(filePath, ":/");
+    volno_t vol = get_vol(root);
+    if (vol == -1)
+        return false;
+    const char *mount = get_mnt(vol);
+    char filePath[PATH_MAX];
+    strcpy(filePath, mount);
+    strcat(filePath, ":/");
 #ifdef ARGV_SUPPORT
-        if (__system_argv->argvMagic == ARGV_MAGIC && __system_argv->argc >= 1 && (strrchr(__system_argv->argv[0], '/') != NULL))
+    if (__system_argv->argvMagic == ARGV_MAGIC && __system_argv->argc >= 1 && (strrchr(__system_argv->argv[0], '/') != NULL))
+    {
+        if (get_disc_io(vol) != NULL && strncasecmp(__system_argv->argv[0], mount, strlen(mount)))
         {
-            if (get_disc_io(i) != NULL && strncasecmp(__system_argv->argv[0], mount, strlen(mount)))
-            {
-                char *lastSlash;
-                strcpy(filePath, __system_argv->argv[0]);
-                lastSlash = strrchr(filePath, '/');
+            char *lastSlash;
+            strcpy(filePath, __system_argv->argv[0]);
+            lastSlash = strrchr(filePath, '/');
 
-                if (lastSlash != NULL)
-                {
-                    if (*(lastSlash - 1) == ':')
-                        lastSlash++;
-                    *lastSlash = '\0';
-                }
+            if (lastSlash != NULL)
+            {
+                if (*(lastSlash - 1) == ':')
+                    lastSlash++;
+                *lastSlash = '\0';
             }
         }
-#endif
-        chdir(filePath);
-        break;
     }
+#endif
+    chdir(filePath);
+    return true;
 }
 
 bool fatUnmount(const char *mount)
@@ -113,7 +111,7 @@ bool fatInit(bool setArgvMagic)
     }
     if (setArgvMagic)
     {
-        configureArgv();
+        configureDefault(sdMounted ? FF_MNT_SD ":" : FF_MNT_FC ":");
     }
 
     return sdMounted ? sdMounted : fatMounted;

@@ -24,6 +24,17 @@ int main(int argc, char **argv)
 		sassert(access("sd:/", F_OK) == 0, "access failed!");
 		sassert(access("sd:/roms", F_OK) == 0, "access failed!");
 		
+		if (0 != argc ) {
+			int i;
+			for (i=0; i<argc; i++) {
+				if (argv[i]) printf("[%d] %s\n", i, argv[i]);
+			}
+		} else {
+			printf("No arguments passed!\n");
+		}
+
+
+		nocashWrite(__system_argv->argv[0], strlen(__system_argv->argv[0]));
 		if (statvfs("sd:/", &stat) != 0)
 		{
 			nocashMessage("statvfs failed");
