@@ -251,6 +251,9 @@ typedef struct {
 	WORD	fdate;			/* Modified date */
 	WORD	ftime;			/* Modified time */
 	BYTE	fattrib;		/* File attribute */
+/* --- BEGIN LIBSLIM PATCH: FEAT_STAT_FCLUST --- */
+	DWORD 	fclust; 		/* Cluster */
+/* --- END LIBSLIM PATCH: FEAT_STAT_FCLUST --- */
 #if FF_USE_LFN
 	TCHAR	altname[FF_SFN_BUF + 1] __attribute__((aligned(32)));/* Altenative file name */
 	TCHAR	fname[FF_LFN_BUF + 1] __attribute__((aligned(32)));	/* Primary file name */

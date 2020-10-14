@@ -2399,11 +2399,15 @@ static FRESULT dir_read (
 		{	/* On the FAT/FAT32 volume */
 			dp->obj.attr = attr = dp->dir[DIR_Attr] & AM_MASK;	/* Get attribute */
 #if FF_USE_LFN		/* LFN configuration */
+/* --- BEGIN LIBSLIM PATCH: FEAT_RPATH_DOTENTRY --- */
 #if FF_FS_RPATH && FF_FS_RPATH_DOTENTRY
 			if (b == DDEM || (int)((attr & ~AM_ARC) == AM_VOL) != vol) {	/* An entry without valid data */
 #else
+/* --- END LIBSLIM PATCH: FEAT_RPATH_DOTENTRY ---  */
 			if (b == DDEM || b == '.' || (int)((attr & ~AM_ARC) == AM_VOL) != vol) {	/* An entry without valid data */
+/* --- BEGIN LIBSLIM PATCH: FEAT_RPATH_DOTENTRY --- */
 #endif
+/* --- END LIBSLIM PATCH: FEAT_RPATH_DOTENTRY ---  */
 				ord = 0xFF;
 			} else {
 				if (attr == AM_LFN) {			/* An LFN entry is found */
@@ -2422,11 +2426,15 @@ static FRESULT dir_read (
 				}
 			}
 #else		/* Non LFN configuration */
+/* --- BEGIN LIBSLIM PATCH: FEAT_RPATH_DOTENTRY --- */
 #if FF_FS_RPATH && FF_FS_RPATH_DOTENTRY
 			if (b != DDEM && attr != AM_LFN && (int)((attr & ~AM_ARC) == AM_VOL) == vol) {	/* Is it a valid entry? */
 #else
+/* --- END LIBSLIM PATCH: FEAT_RPATH_DOTENTRY --- */
 			if (b != DDEM && b != '.' && attr != AM_LFN && (int)((attr & ~AM_ARC) == AM_VOL) == vol) {	/* Is it a valid entry? */
+/* --- BEGIN LIBSLIM PATCH: FEAT_RPATH_DOTENTRY --- */
 #endif
+/* --- END LIBSLIM PATCH: FEAT_RPATH_DOTENTRY --- */
 				break;
 			}
 #endif
@@ -2775,6 +2783,19 @@ static void get_fileinfo (
 	fno->fsize = ld_dword(dp->dir + DIR_FileSize);		/* Size */
 	fno->ftime = ld_word(dp->dir + DIR_ModTime + 0);	/* Time */
 	fno->fdate = ld_word(dp->dir + DIR_ModTime + 2);	/* Date */
+	
+	/* --- BEGIN LIBSLIM PATCH: FEAT_STAT_FCLUST --- */
+
+	DWORD fclust = 0;
+
+	if (fs->fs_type == FS_FAT32) {
+		fclust = ld_dword(dp->dir + DIR_FstClusLO) | (ld_dword(dp->dir + DIR_FstClusHI) << 16);
+	} else {
+		fclust = ld_dword(dp->dir + DIR_FstClusLO);
+	}
+
+	fno->fclust = fclust; /* Cluster */
+	/* --- END LIBSLIM PATCH: FEAT_STAT_FCLUST --- */
 }
 
 #endif /* FF_FS_MINIMIZE <= 1 || FF_FS_RPATH >= 2 */

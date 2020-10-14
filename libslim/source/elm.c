@@ -347,6 +347,7 @@ static void _ELM_fileinfo_to_stat(const FILINFO *info, struct stat *st)
     st->st_atime = st->st_mtime = st->st_ctime = mktime(&date);
     st->st_size = (off_t)info->fsize;
     st->st_nlink = 1;
+    st->st_ino = info->fclust;
 
     if (info->fattrib & AM_DIR)
     {
@@ -410,6 +411,7 @@ int _ELM_stat_r(struct _reent *r, const char *file, struct stat *st)
 
     FILINFO fi;
     fi.fsize = sizeof(fi.fname) / sizeof(fi.fname[0]);
+    
     elm_error = f_stat(p, &fi);
     _ELM_fileinfo_to_stat(&fi, st);
     return _ELM_errnoparse(r, 0, -1);
