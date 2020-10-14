@@ -174,7 +174,7 @@ typedef struct {
 	LBA_t	bitbase;		/* Allocation bitmap base sector */
 #endif
 	LBA_t	winsect;		/* Current sector appearing in the win[] */
-	BYTE	win[FF_MAX_SS] __attribute__((aligned(32)));	/* Disk access window for Directory, FAT (and file data at tiny cfg) */
+	BYTE	win[FF_MAX_SS] __attribute__((aligned(4)));	/* Disk access window for Directory, FAT (and file data at tiny cfg) */
 } FATFS;
 
 
@@ -219,7 +219,7 @@ typedef struct {
 	DWORD*	cltbl;			/* Pointer to the cluster link map table (nulled on open, set by application) */
 #endif
 #if !FF_FS_TINY
-	BYTE	buf[FF_MAX_SS] __attribute__((aligned(32)));	/* File private data read/write window */
+	BYTE	buf[FF_MAX_SS] __attribute__((aligned(4)));	/* File private data read/write window */
 #endif
 } FIL;
 
@@ -233,7 +233,7 @@ typedef struct {
 	DWORD	clust;			/* Current cluster */
 	LBA_t	sect;			/* Current sector (0:Read operation has terminated) */
 	BYTE*	dir;			/* Pointer to the directory item in the win[] */
-	BYTE	fn[12] __attribute__((aligned(32)));			/* SFN (in/out) {body[8],ext[3],status[1]} */
+	BYTE	fn[12] __attribute__((aligned(4)));			/* SFN (in/out) {body[8],ext[3],status[1]} */
 #if FF_USE_LFN
 	DWORD	blk_ofs;		/* Offset of current entry block being processed (0xFFFFFFFF:Invalid) */
 #endif
@@ -255,10 +255,10 @@ typedef struct {
 	DWORD 	fclust; 		/* Cluster */
 /* --- END LIBSLIM PATCH: FEAT_STAT_FCLUST --- */
 #if FF_USE_LFN
-	TCHAR	altname[FF_SFN_BUF + 1] __attribute__((aligned(32)));/* Altenative file name */
-	TCHAR	fname[FF_LFN_BUF + 1] __attribute__((aligned(32)));	/* Primary file name */
+	TCHAR	altname[FF_SFN_BUF + 1] __attribute__((aligned(4)));/* Altenative file name */
+	TCHAR	fname[FF_LFN_BUF + 1] __attribute__((aligned(4)));	/* Primary file name */
 #else
-	TCHAR	fname[12 + 1] __attribute__((aligned(32)));	/* File name */
+	TCHAR	fname[12 + 1] __attribute__((aligned(4)));	/* File name */
 #endif
 } FILINFO;
 

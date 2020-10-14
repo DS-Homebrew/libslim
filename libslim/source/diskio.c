@@ -30,7 +30,7 @@ static CACHE *__cache;
 DSTATUS disk_initialize(BYTE drv)
 {
 	#if SLIM_USE_CACHE
-	__cache = cache_init(CACHE_SIZE, FF_MAX_SS);
+	__cache = cache_init(CACHE_SIZE);
 	#endif
 
 	if (!init_disc_io(drv))

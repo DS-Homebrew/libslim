@@ -5,9 +5,9 @@
 
 
 #include "ff.h"
-#include "stdlib.h"
+#include <malloc.h>
 
-#if FF_USE_LFN == 3	/* Dynamic memory allocation */
+#if FF_USE_LFN == 3	|| SLIM_USE_CACHE /* Dynamic memory allocation */
 
 /*------------------------------------------------------------------------*/
 /* Allocate a memory block                                                */
