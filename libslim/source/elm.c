@@ -347,7 +347,7 @@ static void _ELM_fileinfo_to_stat(const FILINFO *info, struct stat *st)
     st->st_atime = st->st_mtime = st->st_ctime = mktime(&date);
     st->st_size = (off_t)info->fsize;
     st->st_nlink = 1;
-    st->st_ino = info->fclust;
+    st->st_ino = (ino_t)info->fclust;
 
     if (info->fattrib & AM_DIR)
     {

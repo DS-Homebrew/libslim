@@ -2789,9 +2789,9 @@ static void get_fileinfo (
 	DWORD fclust = 0;
 
 	if (fs->fs_type == FS_FAT32) {
-		fclust = ld_dword(dp->dir + DIR_FstClusLO) | (ld_dword(dp->dir + DIR_FstClusHI) << 16);
+		fclust = ld_word(dp->dir + DIR_FstClusLO) | (ld_word(dp->dir + DIR_FstClusHI) << 16);
 	} else {
-		fclust = ld_dword(dp->dir + DIR_FstClusLO);
+		fclust = ld_word(dp->dir + DIR_FstClusLO);
 	}
 
 	fno->fclust = fclust; /* Cluster */
