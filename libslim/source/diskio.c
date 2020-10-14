@@ -15,6 +15,7 @@
 #include <time.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdlib.h>
 #include <nds/disc_io.h>
 /*-----------------------------------------------------------------------*/
 /* CACHE                                                                 */
@@ -31,7 +32,9 @@ typedef struct _CACHE_
 	DWORD drive;
 } CACHE;
 
-static CACHE _cache[CACHE_SIZE]  __attribute__((aligned(32)));
+static bool _cacheInit = false;
+static CACHE* _cache = NULL;
+// static CACHE _cache[CACHE_SIZE]  __attribute__((aligned(32)));
 static DWORD accessCounter = 0;
 
 static inline DWORD stamp(void) { return ++accessCounter; }
@@ -104,6 +107,12 @@ static void invalidate_cache(DWORD drv, DWORD sector, BYTE count)
 
 DSTATUS disk_initialize(BYTE drv)
 {
+	if (!_cacheInit)
+	{
+		_cache = malloc((sizeof(CACHE) * CACHE_SIZE) + sizeof(uint32_t));
+		_cacheInit = true;
+	}
+
 	if (!init_disc_io(drv))
 	{
 		return STA_NOINIT;
