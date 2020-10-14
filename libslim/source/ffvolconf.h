@@ -8,7 +8,7 @@
 / FatFs Mount Points
 /----------------------------------------------------------------------------*/
 
-/* VOL is the volume number, and MNT i the mount point. */
+/* VOL is the volume number, and MNT is the mount point. */
 #define FF_VOL_FC           0
 #define FF_MNT_FC           "fat"
 

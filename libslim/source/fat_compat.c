@@ -45,7 +45,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <slim.h>
 #include <ffvolumes.h>
 
-
 #ifdef ARGV_SUPPORT
 #include <nds/system.h>
 #include <strings.h>
@@ -56,18 +55,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 void configureArgv()
 {
-#ifdef ARGV_SUPPORT
-    if (__system_argv->argvMagic == ARGV_MAGIC && __system_argv->argc >= 1 && (strrchr(__system_argv->argv[0], '/') != NULL))
+    for (int i = FF_VOLUMES - 1; i >= 0; i--)
     {
-        for (int i = 0; i < FF_VOLUMES; i++)
+        const char *mount = get_mnt(i);
+        if (!mount)
+            continue;
+        char filePath[PATH_MAX];
+        strcpy(filePath, mount);
+        strcat(filePath, ":/");
+#ifdef ARGV_SUPPORT
+        if (__system_argv->argvMagic == ARGV_MAGIC && __system_argv->argc >= 1 && (strrchr(__system_argv->argv[0], '/') != NULL))
         {
-            const char *mount = get_mnt(i);
-            if (!mount)
-                continue;
-
             if (get_disc_io(i) != NULL && strncasecmp(__system_argv->argv[0], mount, strlen(mount)))
             {
-                char filePath[PATH_MAX];
                 char *lastSlash;
                 strcpy(filePath, __system_argv->argv[0]);
                 lastSlash = strrchr(filePath, '/');
@@ -78,12 +78,12 @@ void configureArgv()
                         lastSlash++;
                     *lastSlash = '\0';
                 }
-                chdir(filePath);
-                return;
             }
         }
-    }
 #endif
+        chdir(filePath);
+        break;
+    }
 }
 
 bool fatUnmount(const char *mount)
@@ -106,12 +106,11 @@ bool fatInitDefault(void)
 bool fatInit(bool setArgvMagic)
 {
     bool sdMounted = false, fatMounted = false;
+    fatMounted = fatMountSimple(FF_MNT_FC ":", dldiGetInternal());
     if (isDSiMode())
     {
         sdMounted = fatMountSimple(FF_MNT_SD ":", get_io_dsisd());
     }
-    fatMounted = fatMountSimple(FF_MNT_FC ":", dldiGetInternal());
-
     if (setArgvMagic)
     {
         configureArgv();
