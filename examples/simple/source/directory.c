@@ -121,7 +121,11 @@ int main(int argc, char **argv)
 		}
 		char label[256];
 		fatGetVolumeLabel("sd:", label);
-		printf("label: %s", label);
+		printf("label: %s\n", label);
+
+		char cwd[1024];
+		getcwd(cwd, 1024);
+		printf("cwd: %s", cwd);
 	}
 	else
 	{
