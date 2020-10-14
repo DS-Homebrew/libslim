@@ -105,6 +105,7 @@ clean:
 	@echo clean ...
 	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).nds
 	@rm -fr $(LIBSLIM)/lib
+	@rm -fr $(LIBSLIM)/native
 
 #---------------------------------------------------------------------------------
 else

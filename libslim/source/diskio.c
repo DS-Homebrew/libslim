@@ -17,101 +17,21 @@
 #include <string.h>
 #include <stdlib.h>
 #include <nds/disc_io.h>
-/*-----------------------------------------------------------------------*/
-/* CACHE                                                                 */
 
-#define SECTOR_SIZE 512
-#define CACHE_SIZE 8
+#include "cache.h"
 
-typedef struct _CACHE_
-{
-	BYTE data[SECTOR_SIZE];
-	BOOL valid;
-	DWORD sector;
-	DWORD stamp;
-	DWORD drive;
-} CACHE;
-
-static bool _cacheInit = false;
-static CACHE* _cache = NULL;
-// static CACHE _cache[CACHE_SIZE]  __attribute__((aligned(32)));
-static DWORD accessCounter = 0;
-
-static inline DWORD stamp(void) { return ++accessCounter; }
-
-static BOOL read_from_cache(DWORD drv, DWORD sector, BYTE *buff)
-{
-	BOOL res = false;
-	size_t ii;
-	for (ii = 0; ii < CACHE_SIZE; ++ii)
-	{
-		if (_cache[ii].valid && _cache[ii].drive == drv && _cache[ii].sector == sector)
-		{
-			_cache[ii].stamp = stamp();
-			tonccpy(buff, _cache[ii].data, SECTOR_SIZE);
-			res = true;
-			break;
-		}
-	}
-	return res;
-}
-
-static void add_to_cache(DWORD drv, DWORD sector, BYTE *buff)
-{
-	size_t ii;
-	int oldest_item = -1, free_item = -1;
-	DWORD oldest_stamp = UINT_MAX;
-	for (ii = 0; ii < CACHE_SIZE; ++ii)
-	{
-		if (!_cache[ii].valid)
-		{
-			free_item = ii;
-			break;
-		}
-		else
-		{
-			if (_cache[ii].stamp < oldest_stamp)
-			{
-				oldest_item = ii;
-				oldest_stamp = _cache[ii].stamp;
-			}
-		}
-	}
-	if (free_item < 0)
-		free_item = oldest_item;
-	if (free_item < 0)
-		return; //ALGORITHM ERROR
-	toncset(_cache[free_item].data, 0, SECTOR_SIZE);
-	tonccpy(_cache[free_item].data, buff, SECTOR_SIZE);
-	_cache[free_item].valid = true;
-	_cache[free_item].sector = sector;
-	_cache[free_item].stamp = stamp();
-	_cache[free_item].drive = drv;
-}
-
-static void invalidate_cache(DWORD drv, DWORD sector, BYTE count)
-{
-	size_t ii;
-	DWORD top = sector + count;
-	for (ii = 0; ii < CACHE_SIZE; ++ii)
-	{
-		if (_cache[ii].valid && _cache[ii].drive == drv && _cache[ii].sector >= sector && _cache[ii].sector < top)
-		{
-			_cache[ii].valid = false;
-		}
-	}
-}
-
+#if SLIM_USE_CACHE
+static CACHE *__cache;
+#endif
 /*-----------------------------------------------------------------------*/
 /* Initialize a Drive                                                    */
 
+
 DSTATUS disk_initialize(BYTE drv)
 {
-	if (!_cacheInit)
-	{
-		_cache = malloc((sizeof(CACHE) * CACHE_SIZE) + sizeof(uint32_t));
-		_cacheInit = true;
-	}
+	#if SLIM_USE_CACHE
+	__cache = cache_init(CACHE_SIZE, FF_MAX_SS);
+	#endif
 
 	if (!init_disc_io(drv))
 	{
@@ -164,13 +84,23 @@ DRESULT disk_read(
 	DRESULT res = RES_PARERR;
 	if (VALID_DISK(drv)) 
 	{
-		if (count == 1 && read_from_cache(drv, sector, buff))
-			return RES_OK;
-		if (count != 1)
-			invalidate_cache(drv, sector, count);
+		#if !SLIM_USE_CACHE 
 		res = disk_read_internal(drv, buff, sector, count);
-		if (res == RES_OK && count == 1)
-			add_to_cache(drv, sector, buff);
+		#else
+		
+		BYTE *curr = buff;
+
+		for (BYTE i = 0; i < count; i++)
+		{
+			if (!cache_read_sector(__cache, drv, sector + i, curr)) 
+			{
+				res &= disk_read_internal(drv, curr, sector + i, 1);
+				cache_write_sector(__cache, drv, sector, curr);
+			}
+			curr += FF_MAX_SS;
+		}
+		
+		#endif
 	}
 	return res;
 }
@@ -182,16 +112,20 @@ DRESULT disk_read(
 DRESULT disk_write(
 	BYTE drv,		  /* Physical drive nmuber (0..) */
 	const BYTE *buff, /* Data to be written */
-	DWORD sector,	  /* Sector address (LBA) */
+	LBA_t sector,	  /* Sector address (LBA) */
 	BYTE count		  /* Number of sectors to write (1..255) */
 )
 {
 	const DISC_INTERFACE *disc_io = NULL;
 	if ((disc_io = get_disc_io(drv)) != NULL)
 	{
-		
 		DRESULT res = disc_io->writeSectors(sector, count, buff) ? RES_OK : RES_ERROR;
-		invalidate_cache(drv, sector, count);
+		#if SLIM_USE_CACHE 
+		for (BYTE i = 0; i < count; i++)
+		{
+			cache_invalidate_sector(__cache, drv, sector + i);
+		}
+		#endif
 		return res;
 	}
 	return RES_PARERR;

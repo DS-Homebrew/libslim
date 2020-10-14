@@ -178,20 +178,6 @@ ssize_t _ELM_errnoparse(struct _reent *r, ssize_t suc, int fail)
     return ret;
 }
 
-// static const struct
-// {
-//     int posix_flag;
-//     BYTE ff_flag;
-// } flag_mappings[] = {
-//     {O_APPEND, FA_OPEN_APPEND},
-//     {O_CREAT, FA_OPEN_ALWAYS},
-//     {O_EXCL, FA_CREATE_NEW},
-//     {O_TRUNC, FA_CREATE_ALWAYS},
-//     {O_RDONLY, FA_READ},
-//     {O_WRONLY, FA_WRITE},
-//     {O_RDWR, FA_READ | FA_WRITE},
-// };
-
 int _ELM_open_r(struct _reent *r, void *fileStruct, const char *path, int flags, int mode)
 {
     FIL *fp = (FIL *)fileStruct;
