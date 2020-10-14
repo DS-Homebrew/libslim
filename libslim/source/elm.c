@@ -323,6 +323,7 @@ int _ELM_fstat_r(struct _reent *r, void *fd, struct stat *st)
     st->st_gid = 2;
     st->st_size = fp->obj.objsize;
     st->st_spare4[0] = fp->obj.attr;
+    st->st_ino = fp->obj.sclust;
     return 0;
 #else
     r->_errno = ENOSYS;
