@@ -110,7 +110,6 @@ void cache_write_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src)
     cache[free_block].status = 0b01;
     cache[free_block].pdrv = drv;
     cache[free_block].sector = sector;
-    toncset(cache[free_block].data, 0, FF_MAX_SS);
     tonccpy(cache[free_block].data, src, FF_MAX_SS);
 }
 
