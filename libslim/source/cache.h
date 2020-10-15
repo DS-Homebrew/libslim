@@ -55,8 +55,7 @@ typedef struct cache_s CACHE;
  * On the default implementation, there is only a single cache instance that 
  * is supported. Hence, this method should be idempotent.
  * 
- * On first call, a valid pointer to a CACHE instance will be returned.
- * On subsequent calls, NULL will be returned.
+ * On success, a valid pointer to a CACHE instance will be returned.
  */
 CACHE *cache_init(UINT cacheSize);
 

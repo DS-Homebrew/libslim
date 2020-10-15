@@ -30,7 +30,9 @@ static CACHE *__cache;
 DSTATUS disk_initialize(BYTE drv)
 {
 	#if SLIM_USE_CACHE
-	__cache = cache_init(CACHE_SIZE);
+	if (!__cache) {
+		__cache = cache_init(CACHE_SIZE);
+	}
 	#endif
 
 	if (!init_disc_io(drv))
@@ -95,7 +97,7 @@ DRESULT disk_read(
 			if (!cache_read_sector(__cache, drv, sector + i, curr)) 
 			{
 				res &= disk_read_internal(drv, curr, sector + i, 1);
-				cache_write_sector(__cache, drv, sector, curr);
+				// cache_write_sector(__cache, drv, sector, curr);
 			}
 			curr += FF_MAX_SS;
 		}

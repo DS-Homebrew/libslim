@@ -25,8 +25,16 @@ static UINT _cacheSize = 0;
 
 CACHE *cache_init(UINT cacheSize)
 {
+    if (__cache)
+        return __cache;
     _cacheSize = cacheSize;
-    __cache = ff_memalloc(sizeof(CACHE) * cacheSize);
+    CACHE *allocedCache = ff_memalloc(sizeof(CACHE) * cacheSize);
+    if (allocedCache == NULL) {
+        return NULL;
+    } else {
+        __cache = allocedCache;
+    }
+  
     toncset(__cache, 0, sizeof(CACHE) * cacheSize);
     return __cache;
 }
@@ -35,6 +43,9 @@ CACHE *cache_init(UINT cacheSize)
 // Returns -1 if none can be found.
 int cache_find_valid_block(CACHE *cache, BYTE drv, LBA_t sector)
 {
+    if (!cache)
+        return -1;
+
     for (int i = 0; i < _cacheSize; i++) {
         if (VALID(cache[i].status) && cache[i].pdrv == drv && cache[i].sector == sector) {
             return i;
@@ -45,6 +56,9 @@ int cache_find_valid_block(CACHE *cache, BYTE drv, LBA_t sector)
 
 BOOL cache_read_sector(CACHE *cache, BYTE drv, LBA_t sector, BYTE *dst)
 {
+    if (!cache)
+        return false;
+        
     int i = -1;
     if ((i = cache_find_valid_block(cache, drv, sector)) == -1) {
         return false;
@@ -54,12 +68,15 @@ BOOL cache_read_sector(CACHE *cache, BYTE drv, LBA_t sector, BYTE *dst)
     cache[i].status |= 0b10;
 
     // Copy cache
-    tonccpy(dst, &cache[i].data, FF_MAX_SS);
+    tonccpy(dst, cache[i].data, FF_MAX_SS);
     return true;
 }
 
 void cache_write_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src)
-{
+{   
+    if (!cache)
+        return;
+
     int free_block = -1;
 
     while (free_block < 0) {
@@ -77,12 +94,15 @@ void cache_write_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src)
     cache[free_block].status = 0b01;
     cache[free_block].pdrv = drv;
     cache[free_block].sector = sector;
-    toncset(&cache[free_block].data, 0, FF_MAX_SS);
-    tonccpy(&cache[free_block].data, src, FF_MAX_SS);
+    toncset(cache[free_block].data, 0, FF_MAX_SS);
+    tonccpy(cache[free_block].data, src, FF_MAX_SS);
 }
 
 BOOL cache_invalidate_sector(CACHE *cache, BYTE drv, LBA_t sector)
 {
+    if (!cache)
+        return false;
+        
     int i = -1;
     if ((i = cache_find_valid_block(cache, drv, sector)) != -1) {
         cache[i].status = 0;
