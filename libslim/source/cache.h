@@ -35,12 +35,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  / 
  / 0 - Cache is disabled
  / 1 - Cache on heap memory is used
- / 2 - Cache on static (.bss) memory is used.
  / 
- / (Custom option added by libslim. Remove when updating a newer edition of FatFs.)
  */
 
-#define CACHE_SIZE 8
+#define SLIM_CACHE_SIZE 8
+/* This option defines the default cache size
+*/
 
 #if SLIM_USE_CACHE && FF_MAX_SS != FF_MIN_SS
     #error "Cache can only be used for fixed sector size."
@@ -56,6 +56,12 @@ typedef struct cache_s CACHE;
  * is supported. Hence, this method should be idempotent.
  * 
  * On success, a valid pointer to a CACHE instance will be returned.
+ * 
+ * Once initialized, the cache can not be reinitialized, and on subsequent runs will 
+ * return the same cache instance.
+ * 
+ * If cache_init is ever called explicitly with 0, the cache will be disabled,
+ * and subsequent calls will return NULL.
  */
 CACHE *cache_init(UINT cacheSize);
 

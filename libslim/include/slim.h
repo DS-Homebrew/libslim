@@ -67,11 +67,13 @@ extern "C"
    * fat:/ otherwise, and then changes directory according to argv if setArgvMagic 
    * is true.
    * 
-   * This method differs significantly from its equivalent libfat API.
+   * This method differs significantly enough from its equivalent libfat API that
+   * you should take caution. Particularly of note is that unlike libfat, the 
+   * cluster cache is shared across all mounted devices.
    * 
    * Returns true if either sd:/ or fat:/ is successfully mounted, and false otherwise.
    */
-  bool fatInit(bool setArgvMagic);
+  bool fatInit(uint32_t cacheSize, bool configureDefault);
 
   /**
    * Gets the volume label of the given mount point.
@@ -97,6 +99,19 @@ extern "C"
    * root should either be `sd:/` or `fat:/`. Any other path is undefined behaviour.
    */
   bool configureDefault(const char *root);
+
+  /**
+   * Configures the size of the global cache size. 
+   * Setting a cache size of 0 will disable the cache forever.
+   * 
+   * Once configured, further calls of this method will have no effect.
+   * 
+   * This must be called before calling any method that initializes or
+   * mounts a FAT device. Otherwise, the cache will automatically be initialized
+   * with size SLIM_CACHE_SIZE (8 by default).
+   * 
+   */
+  bool configureCache(uint32_t cacheSize);
 
 // File attributes
 #define ATTR_ARCHIVE    0x20   // Archive

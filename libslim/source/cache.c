@@ -22,12 +22,28 @@ static UINT _evictCounter = 0;
 
 static CACHE *__cache = NULL;
 static UINT _cacheSize = 0;
+static BOOL _cacheDisabled = false;
 
 CACHE *cache_init(UINT cacheSize)
 {
-    if (__cache)
+    // Cache was previously disabled
+    if (_cacheDisabled) {
+        return NULL;
+    }
+    
+    // Cache wa previously initialized
+    if (__cache) {
         return __cache;
+    }
+
     _cacheSize = cacheSize;
+
+    // Disable cache
+    if (cacheSize == 0) {
+        _cacheDisabled = true;
+        return NULL;
+    }
+
     CACHE *allocedCache = ff_memalloc(sizeof(CACHE) * cacheSize);
     if (allocedCache == NULL) {
         return NULL;
@@ -102,7 +118,7 @@ BOOL cache_invalidate_sector(CACHE *cache, BYTE drv, LBA_t sector)
 {
     if (!cache)
         return false;
-        
+
     int i = -1;
     if ((i = cache_find_valid_block(cache, drv, sector)) != -1) {
         cache[i].status = 0;

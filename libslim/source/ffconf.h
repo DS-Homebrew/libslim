@@ -172,7 +172,6 @@
 / (Custom option added by libslim. Remove when updating a newer edition of FatFs.)
 */
 
-
 /*---------------------------------------------------------------------------/
 / Drive/Volume Configurations
 /---------------------------------------------------------------------------*/

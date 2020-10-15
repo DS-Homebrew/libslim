@@ -52,6 +52,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "charset.h"
+#include "cache.h"
 
 bool configureDefault(const char *root)
 {
@@ -84,6 +85,11 @@ bool configureDefault(const char *root)
     return true;
 }
 
+bool configureCache(uint32_t cacheSize)
+{
+    return cache_init(cacheSize) != NULL;
+}
+
 bool fatUnmount(const char *mount)
 {
     RemoveDevice(mount);
@@ -98,10 +104,10 @@ bool fatUnmount(const char *mount)
 
 bool fatInitDefault(void)
 {
-    return fatInit(true);
+    return fatInit(SLIM_CACHE_SIZE, true);
 }
 
-bool fatInit(bool setArgvMagic)
+bool fatInit(uint32_t cacheSize, bool _configureDefault)
 {
     bool sdMounted = false, fatMounted = false;
     fatMounted = fatMountSimple(FF_MNT_FC ":", dldiGetInternal());
@@ -109,7 +115,7 @@ bool fatInit(bool setArgvMagic)
     {
         sdMounted = fatMountSimple(FF_MNT_SD ":", get_io_dsisd());
     }
-    if (setArgvMagic)
+    if (_configureDefault)
     {
         configureDefault(sdMounted ? FF_MNT_SD ":" : FF_MNT_FC ":");
     }
