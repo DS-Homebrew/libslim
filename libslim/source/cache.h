@@ -77,7 +77,7 @@ CACHE *cache_init(UINT cacheSize);
  * Postconditions: 
  *  - If the sector exists, FF_MAX_SS bytes will be written to dst.
  */
-BOOL cache_read_sector(CACHE *cache, BYTE drv, LBA_t sector, BYTE *dst);
+BOOL cache_load_sector(CACHE *cache, BYTE drv, LBA_t sector, BYTE *dst);
 
 /**
  * Caches a full sector for the specified drive.
@@ -87,9 +87,10 @@ BOOL cache_read_sector(CACHE *cache, BYTE drv, LBA_t sector, BYTE *dst);
  *  - src is readable for exactly FF_MAX_SS bytes
  *    if this is not the case, bad things will happen.
  *
- *  - src is not necessarily word aligned
+ *  - if SLIM_DMA_CACHE_STORE is defined (default), src is cache (32-byte)-aligned
+ *    and in EWRAM (DMA readable)
  */ 
-void cache_write_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src);
+void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src);
 
 /**
  * Invalidates the specified sector 
@@ -98,5 +99,11 @@ void cache_write_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src);
  */ 
 BOOL cache_invalidate_sector(CACHE *cache, BYTE drv, LBA_t sector);
 
+/**
+ * Invalidates all sectors cached for the given drive.
+ */ 
+void cache_invalidate_all(CACHE *cache, BYTE drv);
+
+BOOL cache_exists(CACHE *cache, BYTE drv, LBA_t sector);
 #endif
 #endif

@@ -16,25 +16,32 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
+
 #include <nds/disc_io.h>
+#include <nds/arm9/cache.h>
 
 #include "cache.h"
 
+#ifdef DEBUG_NOGBA
+#include <nds/debug.h>
+#endif
+
 #if SLIM_USE_CACHE
 static CACHE *__cache;
+static BYTE working_buf[FF_MAX_SS] __attribute__((aligned(32)));
 #endif
 /*-----------------------------------------------------------------------*/
 /* Initialize a Drive                                                    */
 
-
 DSTATUS disk_initialize(BYTE drv)
 {
-	#if SLIM_USE_CACHE
+#if SLIM_USE_CACHE
 	// Initialize cache if not already
-	if (!__cache) {
+	if (!__cache)
+	{
 		__cache = cache_init(SLIM_CACHE_SIZE);
 	}
-	#endif
+#endif
 
 	if (!init_disc_io(drv))
 	{
@@ -85,25 +92,31 @@ DRESULT disk_read(
 )
 {
 	DRESULT res = RES_PARERR;
-	if (VALID_DISK(drv)) 
+	if (VALID_DISK(drv))
 	{
-		#if !SLIM_USE_CACHE 
+#if !SLIM_USE_CACHE
 		res = disk_read_internal(drv, buff, sector, count);
-		#else
-		
-		BYTE *curr = buff;
+#else
 
+#ifdef DEBUG_NOGBA
+		char buf[128];
+		sprintf(buf, "load: %d sectors from %ld, wbuf: %p, tbuf: %p", count, sector, working_buf, buff);
+		nocashMessage(buf);
+#endif
 		for (BYTE i = 0; i < count; i++)
 		{
-			if (!cache_read_sector(__cache, drv, sector + i, curr)) 
+			if (cache_load_sector(__cache, drv, sector + i, &buff[i * FF_MAX_SS]))
 			{
-				res &= disk_read_internal(drv, curr, sector + i, 1);
-				// cache_write_sector(__cache, drv, sector, curr);
+				res = RES_OK;
 			}
-			curr += FF_MAX_SS;
+			else
+			{
+				res = disk_read_internal(drv, working_buf, sector + i, 1);
+				cache_store_sector(__cache, drv, sector + i, working_buf);
+				cache_load_sector(__cache, drv, sector + i, &buff[i * FF_MAX_SS]);
+			}
 		}
-		
-		#endif
+#endif
 	}
 	return res;
 }
@@ -123,12 +136,12 @@ DRESULT disk_write(
 	if ((disc_io = get_disc_io(drv)) != NULL)
 	{
 		DRESULT res = disc_io->writeSectors(sector, count, buff) ? RES_OK : RES_ERROR;
-		#if SLIM_USE_CACHE 
+#if SLIM_USE_CACHE
 		for (BYTE i = 0; i < count; i++)
 		{
 			cache_invalidate_sector(__cache, drv, sector + i);
 		}
-		#endif
+#endif
 		return res;
 	}
 	return RES_PARERR;
