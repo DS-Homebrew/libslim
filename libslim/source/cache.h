@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __SLIM_CACHE_H__
 #include "ff.h"
 
-#define SLIM_USE_CACHE 0
+#define SLIM_USE_CACHE 1
 /**
 / This option defines how the cache will be implemented
  / 
@@ -58,7 +58,7 @@ typedef struct cache_s CACHE;
  * On first call, a valid pointer to a CACHE instance will be returned.
  * On subsequent calls, NULL will be returned.
  */
-CACHE *cache_init(UINT cacheSize, UINT sectorSize);
+CACHE *cache_init(UINT cacheSize);
 
 /**
  * Reads a full sector for the specified drive into dst if it exists.
