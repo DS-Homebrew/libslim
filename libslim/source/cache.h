@@ -32,14 +32,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SLIM_USE_CACHE 1
 /**
 / This option defines how the cache will be implemented
- / 
- / 0 - Cache is disabled
- / 1 - Cache on heap memory is used
- / 
- */
+/ 
+/ 0 - Cache is disabled
+/ 1 - Cache on heap memory is used
+/ 
+*/
 
 #define SLIM_CACHE_SIZE 8
 /* This option defines the default cache size
+*/
+
+#define SLIM_DMA_CACHE_STORE 1
+/**
+/ This option defines whether or not to use DMA to store sectors to the cache
+/ 
+/ 0 - Uses a CPU memcpy to store sectors
+/ 1 - Uses DMA to store sectors
+/ 
 */
 
 #if SLIM_USE_CACHE && FF_MAX_SS != FF_MIN_SS

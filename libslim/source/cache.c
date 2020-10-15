@@ -19,7 +19,6 @@
 #define REFERENCED(v) CHECK_BIT(v, 1)
 
 #define CACHE_LINE_SIZE 32
-#define SLIM_DMA_CACHE_STORE
 
 typedef struct cache_s
 {
@@ -169,7 +168,7 @@ void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src)
     cache[free_block].pdrv = drv;
     cache[free_block].sector = sector;
 
-#ifdef SLIM_DMA_CACHE_STORE
+#if SLIM_DMA_CACHE_STORE
 
     DC_FlushRange(src, FF_MAX_SS);
 
@@ -180,7 +179,7 @@ void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src)
     if ((dst + FF_MAX_SS) % CACHE_LINE_SIZE)
         DC_FlushRange((void *)(dst + FF_MAX_SS), 1);
 
-    dmaCopyWords(2, src, &cache[free_block].data, FF_MAX_SS);
+    dmaCopyWords(0, src, &cache[free_block].data, FF_MAX_SS);
     DC_InvalidateRange(&cache[free_block].data, FF_MAX_SS);
 
 #else
