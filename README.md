@@ -4,8 +4,8 @@ A revival of libELM for use with the Nintendo DS, based off modern FatFS.
 
 libslim aims to be a lightweight drop-in compatible with libfat in the common modern use case and provides only 2 stdio devices instead of libfat
 
-  * `fat:` for the SLOT-1 flashcart device
-  * `sd:` for the TWL-mode SD card
+  * `fat:/` for the SLOT-1 flashcart device
+  * `sd:/` for the TWL-mode SD card
 
 It provides a restricted subset of libfat's API for the common use case. 
 
@@ -16,11 +16,13 @@ It provides a restricted subset of libfat's API for the common use case.
  * fat:/ otherwise, and then changes directory according to argv if setArgvMagic 
  * is true.
  * 
- * This method differs significantly from its equivalent libfat API.
+ * This method differs significantly enough from its equivalent libfat API that
+ * you should take caution. Particularly of note is that unlike libfat, the 
+ * cluster cache is shared across all mounted devices.
  * 
- * Returns true if either sd:/ or fat:/ is successfully mounted, and false otherwise.
+ * Returns true if either sd:/ or fat:/ is successfully mounted, and false otherwise. * 
  */
-bool fatInit(bool setArgvMagic);
+bool fatInit(uint32_t cacheSize, bool setArgvMagic);
 
 /**
  * Initializes SD card in sd:/ and SLOT-1 flashcart device in fat:/ with the default
@@ -34,7 +36,7 @@ bool fatInitDefault(void);
 /**
  * Initializes the given mount point with the provided DISC_INTERFACE
  * 
- * - `mount` must be either "sd:" or "fat:". Unlike libfat, this function does not
+ * - `mount` must be either "sd:/" or "fat:/". Unlike libfat, this function does not
  * support other mount points.
  */
 bool fatMountSimple(const char* mount, const DISC_INTERFACE* interface);
@@ -67,19 +69,85 @@ int FAT_setAttr(const char *file, uint8_t attr);
 
 # Usage
 
-libslim is not compatible with libfat.
+libslim is **not compatible with libfat.**
 
 1. In your Makefile, link against `lslim` instead of `lfat`. This must come before `lnds9`.
 2. Include `<slim.h>` instead of `<fat.h>`.
+3. If you are using `fatMountSimple` instead of `fatInitDefault` or `fatInit`, **you must add `:/` to each mount point**
+   * libfat: `fatMountSimple("sd", get_io_dsisd())`
+   * libslim: `fatMountSimple("sd:/", get_io_dsisd())`
 
-# Third Party Licenses
+## Advanced Usage
+
+libslim uses [FatFS](http://elm-chan.org/fsw/ff/00index_e.html) as a backend FAT implementation, and is fully configurable
+via `ffconf.h`. For more information on each configuration option, see the [FatFS Documentation](http://elm-chan.org/fsw/ff/doc/config.html)
+
+In addition, libslim adds the following compile-time options, toggleable via defines, in addition to those provided by FatFS
+
+### FatFS Options
+
+#### `FF_FS_RPATH_DOTENTRY`
+
+**Default:** `1` (Enabled)
+
+Configures filtering of `.` and `..` entries in `readdir`. 
+
+* Setting to `0` will filter out dot entries in `readdir`. This is the default behaviour of FatFS, but **is not the default behaviour of libslim**
+* Setting this to `1` will show dot entries in `readdir`. This is the default option. 
+  
+Enabling this option (by default) will disable support for `rmdir`.
+
+### Cache Options
+
+#### `SLIM_USE_CACHE`
+
+**Default:** `1` (Enabled)
+
+Configures the use of the sector cache. This should be enabled for most use cases. If you decide not to use the cache, the recommended route is to use runtime cache configuration.
+
+#### `SLIM_CACHE_SIZE`
+
+**Default:** `8`
+
+Configures the size (in number of sectors) of the cache. By default, 8 sectors will be cached, if not otherwise set at runtime.
+
+#### `SLIM_DMA_CACHE_STORE`
+
+**Default:** `1` (Enabled)
+
+Configures whether or not to use DMA copies to write to the cache. Disable if you are having issues with FIFO, DMA saturation, or memory corruption issues.
+
+
+### Runtime Configuration API
+libslim provides a runtime configuration API that does not have an analogue in libfat
+
+#### Default Device
+The default device is automatically configured if the `fatInit` or `fatInitDefault` APIs are used, as is done in libfat. However, the `fatMountSimple` API differs significantly from libfat, and does not set the default device.
+
+If `fatMountSimple` is used to mount a drive, the default device should be configured with `configureDefault(const char *root)`,
+where `root` is either `sd:/` or `fat:/`. This will also properly set ARGV as is the default behaviour of libfat.
+
+#### Cache Size
+Cache size must be configured **before any mount points have created** with `configureCache(uint32_t cacheSize)`, where
+cache size is the **number of sectors**, not the number of pages as in libfat. If cache is not configured, then the default cache size (`SLIM_CACHE_SIZE`) will be used.
+
+The cache can be disabled by configuring a cache size of 0 before any mount points have been created. Note that once the cache size is set, it can not be changed, and subsequent calls to this function will have no effect. 
+
+## Versioning
+libslim is not formally versioned. We encourage you to integrate libslim into your projects via adding this repository as a submodule. The subset of the libfat API that libslim provides will remain stable and unchanged. No guarantees can be made for the runtime configuration API, but it will be unlikely to change.
+
+The latest revision of devkitARM that libslim was tested against is **r55** (July 2020).
+
+# Legal
 
 This work is an amalgamation of works by multiple people over several years. Unless otherwise indicated, 
 this work is licensed under a 3-clause BSD license as provided in LICENSE. 
 
+## Third Party Licenses 
+
 Licenses of component works are provided below.
 
-## libELM by yellowoodgoblin
+### libELM by yellowoodgoblin
 ```
 Copyright (c) 2009-2011, yellow wood goblin
 All rights reserved.
@@ -107,7 +175,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## FatFs by ChaN
+### FatFs by ChaN
 ```
 /*----------------------------------------------------------------------------/
 /  FatFs - FAT file system module  R0.14                     (C)ChaN, 2019
