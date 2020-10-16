@@ -144,25 +144,6 @@ BOOL cache_load_sector(CACHE *cache, BYTE drv, LBA_t sector, BYTE *dst)
     return true;
 }
 
-BOOL cache_exists(CACHE *cache, BYTE drv, LBA_t sector)
-{
-    int i = -1;
-
-    if ((i = cache_find_valid_block(cache, drv, sector)) == -1)
-    {
-        return false;
-    }
-
-#ifdef DEBUG_NOGBA
-    char block[256];
-    sprintf(block, "E: d: %d, s: %ld, i: %d", drv, sector, i);
-    nocashMessage(block);
-#endif
-
-    cache[i].status |= 0b10;
-    return true;
-}
-
 void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src)
 {
     if (!cache || _cacheSize == 0)

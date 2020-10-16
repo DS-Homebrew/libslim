@@ -80,9 +80,9 @@ libslim is **not compatible with libfat.**
 ## Advanced Usage
 
 libslim uses [FatFS](http://elm-chan.org/fsw/ff/00index_e.html) as a backend FAT implementation, and is fully configurable
-via `ffconf.h`. For more information on each configuration option, see the [FatFS Documentation](http://elm-chan.org/fsw/ff/doc/config.html)
+via `ffconf.h`. For more information on each configuration option, see the [FatFS Documentation](http://elm-chan.org/fsw/ff/doc/config.html).
 
-In addition, libslim adds the following compile-time options, toggleable via defines, in addition to those provided by FatFS
+In addition, libslim adds the following compile-time options, toggleable via defines, in addition to those provided by FatFS.
 
 ### FatFS Options
 

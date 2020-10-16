@@ -132,6 +132,12 @@ DRESULT disk_read(
 		sprintf(buf, "load: %d sectors from %ld, wbuf: %p, tbuf: %p", count, sector, working_buf, buff);
 		nocashMessage(buf);
 #endif
+		if (!__cache) 
+		{
+			// If caching is disabled, there's no reason to read each sector individually..,
+			return disk_read_internal(drv, buff, sector, count);
+		}
+
 		for (BYTE i = 0; i < count; i++)
 		{
 			if (cache_load_sector(__cache, drv, sector + i, &buff[i * FF_MAX_SS]))
@@ -140,6 +146,13 @@ DRESULT disk_read(
 			}
 			else
 			{
+				// We need the working buffer unfortunately to ensure
+				// aligned operation. This means we have to read in sectors
+				// one at a time. With a sizable cache, the performance
+				// benefits of cachine mitigate the drawbacks of reading
+				// sector by sector.
+
+				// Most read requests are single sector anyways.
 				res = disk_read_internal(drv, working_buf, sector + i, 1);
 				cache_store_sector(__cache, drv, sector + i, working_buf);
 				tonccpy(&buff[i * FF_MAX_SS], working_buf, FF_MAX_SS);

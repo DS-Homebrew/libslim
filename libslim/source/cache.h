@@ -113,6 +113,5 @@ BOOL cache_invalidate_sector(CACHE *cache, BYTE drv, LBA_t sector);
  */ 
 void cache_invalidate_all(CACHE *cache, BYTE drv);
 
-BOOL cache_exists(CACHE *cache, BYTE drv, LBA_t sector);
 #endif
 #endif
