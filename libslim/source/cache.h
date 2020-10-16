@@ -38,8 +38,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 / 
 */
 
-#define SLIM_CACHE_SIZE 8
-/* This option defines the default cache size
+#define SLIM_CACHE_SIZE 64
+/* This option defines the default cache size in number of sectors
 */
 
 #define SLIM_DMA_CACHE_STORE 1

@@ -107,7 +107,7 @@ extern "C"
    * 
    * This must be called before calling any method that initializes or
    * mounts a FAT device. Otherwise, the cache will automatically be initialized
-   * with size SLIM_CACHE_SIZE (8 by default).
+   * with size SLIM_CACHE_SIZE (64 by default).
    * 
    */
   bool configureCache(uint32_t cacheSize);

@@ -107,9 +107,9 @@ Configures the use of the sector cache. This should be enabled for most use case
 
 #### `SLIM_CACHE_SIZE`
 
-**Default:** `8`
+**Default:** `64`
 
-Configures the size (in number of sectors) of the cache. By default, 8 sectors will be cached, if not otherwise set at runtime.
+Configures the size (in number of sectors) of the cache. By default, 64 sectors will be cached, if not otherwise set at runtime.
 
 #### `SLIM_DMA_CACHE_STORE`
 
