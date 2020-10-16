@@ -142,7 +142,7 @@ DRESULT disk_read(
 			{
 				res = disk_read_internal(drv, working_buf, sector + i, 1);
 				cache_store_sector(__cache, drv, sector + i, working_buf);
-				cache_load_sector(__cache, drv, sector + i, &buff[i * FF_MAX_SS]);
+				tonccpy(&buff[i * FF_MAX_SS], working_buf, FF_MAX_SS);
 			}
 		}
 #endif

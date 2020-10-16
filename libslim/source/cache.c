@@ -105,7 +105,7 @@ CACHE *cache_init(UINT cacheSize)
 
 // Finds the block with the given drv and sector
 // Returns -1 if none can be found.
-int cache_find_valid_block(CACHE *cache, BYTE drv, LBA_t sector)
+static inline int cache_find_valid_block(CACHE *cache, BYTE drv, LBA_t sector)
 {
     if (!cache)
         return -1;
@@ -190,8 +190,8 @@ void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src)
     nocashMessage(block);
 #endif
 
-    // Set valid and referenced
-    cache[free_block].status = (BYTE)0b11;
+    // Set valid and unreferenced
+    cache[free_block].status = (BYTE)0b01;
     cache[free_block].pdrv = drv;
     cache[free_block].sector = sector;
 
