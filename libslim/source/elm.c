@@ -632,8 +632,6 @@ int _ELM_ftruncate_r(struct _reent *r, void *fd, off_t len)
     elm_error = f_lseek(fp, len);
     if (elm_error != FR_OK)
         return _ELM_errnoparse(r, 0, -1);
-    if (ptr > len)
-        ptr = len;
     elm_error = f_truncate(fp);
     if (elm_error != FR_OK)
         return _ELM_errnoparse(r, 0, -2);
