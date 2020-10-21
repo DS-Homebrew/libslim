@@ -219,7 +219,7 @@ typedef struct {
 	DWORD*	cltbl;			/* Pointer to the cluster link map table (nulled on open, set by application) */
 #endif
 #if !FF_FS_TINY
-	BYTE	buf[FF_MAX_SS] __attribute__((aligned(4)));	/* File private data read/write window */
+	BYTE	buf[FF_MAX_SS] __attribute__((aligned(32)));	/* File private data read/write window */
 #endif
 } FIL;
 

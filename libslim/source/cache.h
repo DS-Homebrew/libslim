@@ -51,6 +51,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 / 
 */
 
+#define SECTORS_PER_CHUNK (sizeof(DWORD) * CHAR_BIT)
+
 #if SLIM_USE_CACHE && FF_MAX_SS != FF_MIN_SS
     #error "Cache can only be used for fixed sector size."
 #endif

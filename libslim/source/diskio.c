@@ -33,7 +33,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* disk I/O modules and attach it to FatFs module with common interface. */
 /*-----------------------------------------------------------------------*/
 
-
 #include "ff.h"
 #include "ffvolumes.h"
 #include "tonccpy.h"
@@ -50,6 +49,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <nds/arm9/cache.h>
 
 #include "cache.h"
+
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+#define CHECK_BIT(v, n) (((v) >> (n)) & 1)
+
+#define DEBUG_NOGBA
 
 #ifdef DEBUG_NOGBA
 #include <nds/debug.h>
@@ -112,51 +116,179 @@ DRESULT disk_read_internal(
 	}
 	return RES_PARERR;
 }
+#define PRINTF_BINARY_PATTERN_INT8 "%c%c%c%c%c%c%c%c"
+#define PRINTF_BYTE_TO_BINARY_INT8(i) \
+	(((i)&0x80ll) ? '1' : '0'),       \
+		(((i)&0x40ll) ? '1' : '0'),   \
+		(((i)&0x20ll) ? '1' : '0'),   \
+		(((i)&0x10ll) ? '1' : '0'),   \
+		(((i)&0x08ll) ? '1' : '0'),   \
+		(((i)&0x04ll) ? '1' : '0'),   \
+		(((i)&0x02ll) ? '1' : '0'),   \
+		(((i)&0x01ll) ? '1' : '0')
+
+#define PRINTF_BINARY_PATTERN_INT16 \
+	PRINTF_BINARY_PATTERN_INT8 PRINTF_BINARY_PATTERN_INT8
+#define PRINTF_BYTE_TO_BINARY_INT16(i) \
+	PRINTF_BYTE_TO_BINARY_INT8((i) >> 8), PRINTF_BYTE_TO_BINARY_INT8(i)
+#define PRINTF_BINARY_PATTERN_INT32 \
+	PRINTF_BINARY_PATTERN_INT16 PRINTF_BINARY_PATTERN_INT16
+#define PRINTF_BYTE_TO_BINARY_INT32(i) \
+	PRINTF_BYTE_TO_BINARY_INT16((i) >> 16), PRINTF_BYTE_TO_BINARY_INT16(i)
+#define PRINTF_BINARY_PATTERN_INT64 \
+	PRINTF_BINARY_PATTERN_INT32 PRINTF_BINARY_PATTERN_INT32
+#define PRINTF_BYTE_TO_BINARY_INT64(i) \
+	PRINTF_BYTE_TO_BINARY_INT32((i) >> 32), PRINTF_BYTE_TO_BINARY_INT32(i)
+
+BYTE get_disk_lookahead(DWORD bitmap, BYTE currentSector, BYTE maxCount)
+{
+	BYTE sectorsToRead = 0;
+	// if (bitmap == 0)
+	// 	return maxCount;
+	for (BYTE i = 0; i < maxCount; i++)
+	{
+		if (CHECK_BIT(bitmap, currentSector + i))
+		{
+			// reached a cache sector
+			break;
+		}
+		sectorsToRead++;
+	}
+	return sectorsToRead;
+}
 
 DRESULT disk_read(
 	BYTE drv,	  /* Physical drive nmuber (0..) */
 	BYTE *buff,	  /* Data buffer to store read data */
-	LBA_t sector, /* Sector address (LBA) */
+	LBA_t baseSector, /* Sector address (LBA) */
 	BYTE count	  /* Number of sectors to read (1..255) */
 )
 {
 	DRESULT res = RES_PARERR;
+	BYTE sectorsRemaining = count;
+
 	if (VALID_DISK(drv))
 	{
 #if !SLIM_USE_CACHE
 		res = disk_read_internal(drv, buff, sector, count);
 #else
 
-#ifdef DEBUG_NOGBA
-		char buf[128];
-		sprintf(buf, "load: %d sectors from %ld, wbuf: %p, tbuf: %p", count, sector, working_buf, buff);
-		nocashMessage(buf);
-#endif
-		if (!__cache) 
+// #ifdef DEBUG_NOGBA
+// 		char buf[128];
+// 		sprintf(buf, "load: %d sectors from %ld, wbuf: %p, tbuf: %p", count, sector, working_buf, buff);
+// 		nocashMessage(buf);
+// #endif
+		// If caching is disabled, there's no reason to read each sector individually..,
+		if (!__cache)
 		{
-			// If caching is disabled, there's no reason to read each sector individually..,
-			return disk_read_internal(drv, buff, sector, count);
+			return disk_read_internal(drv, buff, baseSector, count);
 		}
 
-		for (BYTE i = 0; i < count; i++)
+		// If we're only loading one sector, no need to engage more complicated searches
+		if (count == 1)
 		{
-			if (cache_load_sector(__cache, drv, sector + i, &buff[i * FF_MAX_SS]))
+			if (cache_load_sector(__cache, drv, baseSector, buff))
 			{
 				res = RES_OK;
 			}
 			else
 			{
-				// We need the working buffer unfortunately to ensure
-				// aligned operation. This means we have to read in sectors
-				// one at a time. With a sizable cache, the performance
-				// benefits of cachine mitigate the drawbacks of reading
-				// sector by sector.
-
-				// Most read requests are single sector anyways.
-				res = disk_read_internal(drv, working_buf, sector + i, 1);
-				cache_store_sector(__cache, drv, sector + i, working_buf);
-				tonccpy(&buff[i * FF_MAX_SS], working_buf, FF_MAX_SS);
+				// This is a single sector read.
+				res = disk_read_internal(drv, working_buf, baseSector, 1);
+				cache_store_sector(__cache, drv, baseSector, working_buf);
+				tonccpy(buff, working_buf, FF_MAX_SS);
 			}
+			return res;
+		}
+
+		// Optimized path for multi-sector reads to minimize SD card requests
+		BYTE sectorOffset = 0;
+		
+#ifdef DEBUG_NOGBA
+		char buf[128];
+#endif
+	
+		while (sectorsRemaining)
+		{
+			// BYTE sectorsRead = MIN((BYTE)SECTORS_PER_CHUNK, sectorsRemaining);
+			const BYTE sectorsRead = MIN(4, sectorsRemaining);
+
+			sprintf(buf, "load: chunk of %d (%d remaining, total %d/%d) sectors starting %ld", sectorsRead, sectorsRemaining,
+				sectorOffset, count, baseSector + sectorOffset);
+			nocashMessage(buf);
+
+			// Get bitmap of cached sectors
+			const DWORD bitmap = cache_get_existence_bitmap(__cache, drv, baseSector 
+				+ sectorOffset, sectorsRemaining);
+
+			sprintf(buf, "chunk %d..=%d (%ld): " PRINTF_BINARY_PATTERN_INT32,
+					sectorOffset, sectorsRead + sectorOffset, bitmap, PRINTF_BYTE_TO_BINARY_INT32(bitmap));
+			nocashMessage(buf);
+
+			for (int i = 0; i < sectorsRead;)
+			{
+				BYTE lookaheadCount = get_disk_lookahead(bitmap, (i + sectorOffset), sectorsRead);
+				res = disk_read_internal(drv, &buff[(i + sectorOffset) * FF_MAX_SS], baseSector + sectorOffset + i, lookaheadCount);
+				i += lookaheadCount;
+			}
+			sectorOffset += sectorsRead;
+			sectorsRemaining -= sectorsRead;
+			sprintf(buf, "read completed, read %d sectors", sectorOffset);
+			nocashMessage(buf);
+			
+			// for testing
+			// int i;
+			// // Read all cached sectors into the buffer first
+			// for (i = 0; i < sectorsRead; i++)
+			// {
+			// 	if (!CHECK_BIT(bitmap, sectorOffset + i)) {
+			// 		continue;
+			// 	}
+
+			// 	// If the bitmap says its true, but the cached sector is invalid, then something went horribly wrong
+			// 	if (!cache_load_sector(__cache, drv, baseSector + (sectorOffset + i), &buff[(sectorOffset + i) * FF_MAX_SS])) 
+			// 	{
+			// 		sprintf(buf, "unexpected cache miss: %ld, o: %ld", 
+			// 			baseSector + (sectorOffset + i), sectorOffset);
+			// 		nocashMessage(buf);
+			// 		return RES_ERROR;
+			// 	}
+			// }
+
+			// sprintf(buf, "read %ld cached sectors", i);
+			// nocashMessage(buf);
+
+			// Rewind to beginning of scan
+
+			// while (sectorOffset < sectorsRead)
+			// {
+			// 	if (CHECK_BIT(bitmap, sectorOffset))
+			// 	{
+			// 		sectorOffset++;
+			// 	}
+			// 	else
+			// 	{
+			// 		// Get the number of uncached sectors
+			// 		BYTE lookaheadCount = get_disk_lookahead(bitmap, sectorOffset, sectorsRead);
+			// 		sprintf(buf, "looking ahead: %d", lookaheadCount);
+			// 		nocashMessage(buf);
+			// 		// Read lookahead_count sectors into the buffer
+			// 		res = disk_read_internal(drv, &buff[sectorOffset * FF_MAX_SS], baseSector + sectorOffset, lookaheadCount);
+
+			// 		// Just to be safe, flush the address ranges
+			// 		// DC_FlushRange(&buff[sectorOffset * FF_MAX_SS], FF_MAX_SS * lookaheadCount);
+
+			// 		// for (int i = 0; i < lookaheadCount; i++)
+			// 		// {
+			// 		// 	// Cache each loaded sector
+			// 		// 	tonccpy(working_buf, &buff[(sectorOffset + i) * FF_MAX_SS], FF_MAX_SS);
+			// 		// 	cache_store_sector(__cache, drv, baseSector + (sectorOffset + i), working_buf);
+			// 		// }
+
+			// 		sectorOffset += lookaheadCount;
+			// 	}
+			// }
+			// sectorsRemaining -= sectorsRead;
 		}
 #endif
 	}
