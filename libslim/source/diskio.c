@@ -52,7 +52,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #define CHECK_BIT(v, n) (((v) >> (n)) & 1)
-#define BIT_SET(n)   (1 << (n))
+#define BIT_SET(n) (1 << (n))
 
 #define DEBUG_NOGBA
 
@@ -143,19 +143,9 @@ DRESULT disk_read_internal(
 
 BYTE get_disk_lookahead(DWORD bitmap, BYTE currentSector, BYTE maxCount)
 {
-	BYTE sectorsToRead = 0;
-	// if (bitmap == 0)
-	// 	return maxCount;
-	for (BYTE i = 0; i < maxCount; i++)
-	{
-		if (CHECK_BIT(bitmap, currentSector + i))
-		{
-			// reached a cache sector
-			break;
-		}
-		sectorsToRead++;
-	}
-	return sectorsToRead;
+	if ((bitmap >> currentSector) == 0)
+		  return maxCount;
+    return MIN(maxCount, __builtin_ctzl(bitmap >> currentSector));
 }
 
 DRESULT disk_read(
@@ -174,11 +164,11 @@ DRESULT disk_read(
 		res = disk_read_internal(drv, buff, sector, count);
 #else
 
-		// #ifdef DEBUG_NOGBA
-		// 		char buf[128];
-		// 		sprintf(buf, "load: %d sectors from %ld, wbuf: %p, tbuf: %p", count, sector, working_buf, buff);
-		// 		nocashMessage(buf);
-		// #endif
+#ifdef DEBUG_NOGBA
+		char buf[256];
+		// sprintf(buf, "load: %d sectors from %ld, wbuf: %p, tbuf: %p", count, baseSector, working_buf, buff);
+		// nocashMessage(buf);
+#endif
 		// If caching is disabled, there's no reason to read each sector individually..,
 		if (!__cache)
 		{
@@ -202,30 +192,27 @@ DRESULT disk_read(
 			return res;
 		}
 
-#ifdef DEBUG_NOGBA
-		char buf[128];
-#endif
-
 		// Optimized path for multi-sector reads to minimize SD card requests
 		LBA_t sectorOffset = 0;
-
 		while (sectorsRemaining)
 		{
-			// BYTE sectorsRead = MIN((BYTE)SECTORS_PER_CHUNK, sectorsRemaining);
+			// BYTE sectorsToRead = MIN((BYTE)SECTORS_PER_CHUNK, sectorsRemaining);
 			const BYTE sectorsToRead = MIN(4, sectorsRemaining);
-
+#ifdef DEBUG_NOGBA
 			sprintf(buf, "load: chunk of %d (%d remaining, total %ld/%d) sectors starting %ld", sectorsToRead, sectorsRemaining,
 					sectorOffset, count, baseSector + sectorOffset);
 			nocashMessage(buf);
-
+#endif
 			// Get bitmap of cached sectors
 			// bitmap is rooted at sectorOffset
 			const DWORD cacheBitmap = cache_get_existence_bitmap(__cache, drv, baseSector + sectorOffset, sectorsToRead);
 			DWORD readBitmap = 0;
 
+#ifdef DEBUG_NOGBA
 			sprintf(buf, "chunk %ld..=%ld (%ld): " PRINTF_BINARY_PATTERN_INT32,
 					sectorOffset, sectorsToRead + sectorOffset, cacheBitmap, PRINTF_BYTE_TO_BINARY_INT32(cacheBitmap));
 			nocashMessage(buf);
+#endif
 
 			for (LBA_t i = 0; i < sectorsToRead; i++)
 			{
@@ -234,15 +221,22 @@ DRESULT disk_read(
 					continue;
 				}
 
+#ifdef DEBUG_NOGBA
 				sprintf(buf, "LC: sO: %ld, i: %ld", sectorOffset, i);
 				nocashMessage(buf);
-
-				// If the bitmap says cached sector exists, but the cached sector is invalid, then something went horribly wrong
-				if (!cache_load_sector(__cache, drv, baseSector + i + sectorOffset, &buff[(i + sectorOffset) * FF_MAX_SS]))
+#endif
+				// If the bitmap says cached sector exists, but the cached sector is invalid,
+				// then something went horribly wrong. We can recover though, by re-reading
+				// the sector.
+				// The unreferenced sector will eventually be wiped from CLOCK
+				if (!cache_load_sector(__cache, drv, baseSector + i + sectorOffset,
+									   &buff[(i + sectorOffset) * FF_MAX_SS]))
 				{
+#ifdef DEBUG_NOGBA
 					sprintf(buf, "unexpected cache miss: %ld, o: %ld",
 							baseSector + (sectorOffset + i), sectorOffset);
 					nocashMessage(buf);
+#endif
 				}
 				else
 				{
@@ -261,15 +255,20 @@ DRESULT disk_read(
 
 				BYTE lookaheadCount = get_disk_lookahead(readBitmap, i, sectorsToRead - i);
 
+#ifdef DEBUG_NOGBA
 				sprintf(buf, "LU: sO: %ld, i: %ld, n: %d", sectorOffset, i, lookaheadCount);
 				nocashMessage(buf);
-
+#endif
 				res = disk_read_internal(drv, &buff[(i + sectorOffset) * FF_MAX_SS],
 										 baseSector + sectorOffset + i, lookaheadCount);
+
+				if (res != RES_OK)
+					return res;
 
 				// Flush SD read range
 				DC_FlushRange(&buff[(i + sectorOffset) * FF_MAX_SS], lookaheadCount * FF_MAX_SS);
 
+				// Cache read sectors
 				for (int j = 0; j < lookaheadCount; j++)
 				{
 					readBitmap |= BIT_SET((i + j));
@@ -280,17 +279,20 @@ DRESULT disk_read(
 				i += lookaheadCount;
 			}
 
-			if (__builtin_popcount(readBitmap) != sectorsToRead) 
+			// If
+			if (__builtin_popcount(readBitmap) != sectorsToRead)
 				return RES_ERROR;
-				
+
 			sectorOffset += sectorsToRead;
 			sectorsRemaining -= sectorsToRead;
 		}
+#ifdef DEBUG_NOGBA
 		sprintf(buf, "read completed, read %ld sectors", sectorOffset);
 		nocashMessage(buf);
 #endif
+#endif
 	}
-	
+
 	return res;
 }
 
