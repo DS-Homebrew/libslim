@@ -52,6 +52,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #define CHECK_BIT(v, n) (((v) >> (n)) & 1)
+#define BIT_SET(n)   (1 << (n))
 
 #define DEBUG_NOGBA
 
@@ -158,10 +159,10 @@ BYTE get_disk_lookahead(DWORD bitmap, BYTE currentSector, BYTE maxCount)
 }
 
 DRESULT disk_read(
-	BYTE drv,	  /* Physical drive nmuber (0..) */
-	BYTE *buff,	  /* Data buffer to store read data */
+	BYTE drv,		  /* Physical drive nmuber (0..) */
+	BYTE *buff,		  /* Data buffer to store read data */
 	LBA_t baseSector, /* Sector address (LBA) */
-	BYTE count	  /* Number of sectors to read (1..255) */
+	BYTE count		  /* Number of sectors to read (1..255) */
 )
 {
 	DRESULT res = RES_PARERR;
@@ -173,11 +174,11 @@ DRESULT disk_read(
 		res = disk_read_internal(drv, buff, sector, count);
 #else
 
-// #ifdef DEBUG_NOGBA
-// 		char buf[128];
-// 		sprintf(buf, "load: %d sectors from %ld, wbuf: %p, tbuf: %p", count, sector, working_buf, buff);
-// 		nocashMessage(buf);
-// #endif
+		// #ifdef DEBUG_NOGBA
+		// 		char buf[128];
+		// 		sprintf(buf, "load: %d sectors from %ld, wbuf: %p, tbuf: %p", count, sector, working_buf, buff);
+		// 		nocashMessage(buf);
+		// #endif
 		// If caching is disabled, there's no reason to read each sector individually..,
 		if (!__cache)
 		{
@@ -201,97 +202,95 @@ DRESULT disk_read(
 			return res;
 		}
 
-		// Optimized path for multi-sector reads to minimize SD card requests
-		BYTE sectorOffset = 0;
-		
 #ifdef DEBUG_NOGBA
 		char buf[128];
 #endif
-	
+
+		// Optimized path for multi-sector reads to minimize SD card requests
+		LBA_t sectorOffset = 0;
+
 		while (sectorsRemaining)
 		{
 			// BYTE sectorsRead = MIN((BYTE)SECTORS_PER_CHUNK, sectorsRemaining);
-			const BYTE sectorsRead = MIN(4, sectorsRemaining);
+			const BYTE sectorsToRead = MIN(4, sectorsRemaining);
 
-			sprintf(buf, "load: chunk of %d (%d remaining, total %d/%d) sectors starting %ld", sectorsRead, sectorsRemaining,
-				sectorOffset, count, baseSector + sectorOffset);
+			sprintf(buf, "load: chunk of %d (%d remaining, total %ld/%d) sectors starting %ld", sectorsToRead, sectorsRemaining,
+					sectorOffset, count, baseSector + sectorOffset);
 			nocashMessage(buf);
 
 			// Get bitmap of cached sectors
-			const DWORD bitmap = cache_get_existence_bitmap(__cache, drv, baseSector 
-				+ sectorOffset, sectorsRemaining);
+			// bitmap is rooted at sectorOffset
+			const DWORD cacheBitmap = cache_get_existence_bitmap(__cache, drv, baseSector + sectorOffset, sectorsToRead);
+			DWORD readBitmap = 0;
 
-			sprintf(buf, "chunk %d..=%d (%ld): " PRINTF_BINARY_PATTERN_INT32,
-					sectorOffset, sectorsRead + sectorOffset, bitmap, PRINTF_BYTE_TO_BINARY_INT32(bitmap));
+			sprintf(buf, "chunk %ld..=%ld (%ld): " PRINTF_BINARY_PATTERN_INT32,
+					sectorOffset, sectorsToRead + sectorOffset, cacheBitmap, PRINTF_BYTE_TO_BINARY_INT32(cacheBitmap));
 			nocashMessage(buf);
 
-			for (int i = 0; i < sectorsRead;)
+			for (LBA_t i = 0; i < sectorsToRead; i++)
 			{
-				BYTE lookaheadCount = get_disk_lookahead(bitmap, (i + sectorOffset), sectorsRead);
-				res = disk_read_internal(drv, &buff[(i + sectorOffset) * FF_MAX_SS], baseSector + sectorOffset + i, lookaheadCount);
+				if (!CHECK_BIT(cacheBitmap, i))
+				{
+					continue;
+				}
+
+				sprintf(buf, "LC: sO: %ld, i: %ld", sectorOffset, i);
+				nocashMessage(buf);
+
+				// If the bitmap says cached sector exists, but the cached sector is invalid, then something went horribly wrong
+				if (!cache_load_sector(__cache, drv, baseSector + i + sectorOffset, &buff[(i + sectorOffset) * FF_MAX_SS]))
+				{
+					sprintf(buf, "unexpected cache miss: %ld, o: %ld",
+							baseSector + (sectorOffset + i), sectorOffset);
+					nocashMessage(buf);
+				}
+				else
+				{
+					readBitmap |= BIT_SET(i);
+					res = RES_OK;
+				}
+			}
+
+			for (LBA_t i = 0; i < sectorsToRead;)
+			{
+				if (CHECK_BIT(readBitmap, i))
+				{
+					i += 1;
+					continue;
+				}
+
+				BYTE lookaheadCount = get_disk_lookahead(readBitmap, i, sectorsToRead - i);
+
+				sprintf(buf, "LU: sO: %ld, i: %ld, n: %d", sectorOffset, i, lookaheadCount);
+				nocashMessage(buf);
+
+				res = disk_read_internal(drv, &buff[(i + sectorOffset) * FF_MAX_SS],
+										 baseSector + sectorOffset + i, lookaheadCount);
+
+				// Flush SD read range
+				DC_FlushRange(&buff[(i + sectorOffset) * FF_MAX_SS], lookaheadCount * FF_MAX_SS);
+
+				for (int j = 0; j < lookaheadCount; j++)
+				{
+					readBitmap |= BIT_SET((i + j));
+					tonccpy(working_buf, &buff[(i + j + sectorOffset) * FF_MAX_SS], FF_MAX_SS);
+					cache_store_sector(__cache, drv, baseSector + sectorOffset + i + j, working_buf);
+				}
+
 				i += lookaheadCount;
 			}
-			sectorOffset += sectorsRead;
-			sectorsRemaining -= sectorsRead;
-			sprintf(buf, "read completed, read %d sectors", sectorOffset);
-			nocashMessage(buf);
-			
-			// for testing
-			// int i;
-			// // Read all cached sectors into the buffer first
-			// for (i = 0; i < sectorsRead; i++)
-			// {
-			// 	if (!CHECK_BIT(bitmap, sectorOffset + i)) {
-			// 		continue;
-			// 	}
 
-			// 	// If the bitmap says its true, but the cached sector is invalid, then something went horribly wrong
-			// 	if (!cache_load_sector(__cache, drv, baseSector + (sectorOffset + i), &buff[(sectorOffset + i) * FF_MAX_SS])) 
-			// 	{
-			// 		sprintf(buf, "unexpected cache miss: %ld, o: %ld", 
-			// 			baseSector + (sectorOffset + i), sectorOffset);
-			// 		nocashMessage(buf);
-			// 		return RES_ERROR;
-			// 	}
-			// }
-
-			// sprintf(buf, "read %ld cached sectors", i);
-			// nocashMessage(buf);
-
-			// Rewind to beginning of scan
-
-			// while (sectorOffset < sectorsRead)
-			// {
-			// 	if (CHECK_BIT(bitmap, sectorOffset))
-			// 	{
-			// 		sectorOffset++;
-			// 	}
-			// 	else
-			// 	{
-			// 		// Get the number of uncached sectors
-			// 		BYTE lookaheadCount = get_disk_lookahead(bitmap, sectorOffset, sectorsRead);
-			// 		sprintf(buf, "looking ahead: %d", lookaheadCount);
-			// 		nocashMessage(buf);
-			// 		// Read lookahead_count sectors into the buffer
-			// 		res = disk_read_internal(drv, &buff[sectorOffset * FF_MAX_SS], baseSector + sectorOffset, lookaheadCount);
-
-			// 		// Just to be safe, flush the address ranges
-			// 		// DC_FlushRange(&buff[sectorOffset * FF_MAX_SS], FF_MAX_SS * lookaheadCount);
-
-			// 		// for (int i = 0; i < lookaheadCount; i++)
-			// 		// {
-			// 		// 	// Cache each loaded sector
-			// 		// 	tonccpy(working_buf, &buff[(sectorOffset + i) * FF_MAX_SS], FF_MAX_SS);
-			// 		// 	cache_store_sector(__cache, drv, baseSector + (sectorOffset + i), working_buf);
-			// 		// }
-
-			// 		sectorOffset += lookaheadCount;
-			// 	}
-			// }
-			// sectorsRemaining -= sectorsRead;
+			if (__builtin_popcount(readBitmap) != sectorsToRead) 
+				return RES_ERROR;
+				
+			sectorOffset += sectorsToRead;
+			sectorsRemaining -= sectorsToRead;
 		}
+		sprintf(buf, "read completed, read %ld sectors", sectorOffset);
+		nocashMessage(buf);
 #endif
 	}
+	
 	return res;
 }
 

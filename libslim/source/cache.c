@@ -234,7 +234,6 @@ DWORD cache_get_existence_bitmap(CACHE *cache, BYTE drv, LBA_t sector, BYTE coun
     {
         if (VALID(cache[i].status) && cache[i].pdrv == drv)
         {
-           
             int cachedSector = cache[i].sector;
             int relativeSector = cachedSector - sector;
             if (relativeSector < 0 || relativeSector >= count)
