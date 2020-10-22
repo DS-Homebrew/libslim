@@ -139,7 +139,7 @@ DRESULT disk_read_internal(
 #define PRINTF_BYTE_TO_BINARY_INT64(i) \
 	PRINTF_BYTE_TO_BINARY_INT32((i) >> 32), PRINTF_BYTE_TO_BINARY_INT32(i)
 
-BYTE get_disk_lookahead(DWORD bitmap, BYTE currentSector, BYTE maxCount)
+static inline BYTE get_disk_lookahead(DWORD bitmap, BYTE currentSector, BYTE maxCount)
 {
 	if ((bitmap >> currentSector) == 0)
 		return maxCount;
@@ -204,8 +204,8 @@ DRESULT disk_read(
 #endif
 			// Get bitmap of cached sectors
 			// bitmap is rooted at sectorOffset
-			const DWORD cacheBitmap = cache_get_existence_bitmap(__cache, drv, baseSector + sectorOffset, sectorsToRead);
-			DWORD readBitmap = 0;
+			const BITMAP_PRIMITIVE cacheBitmap = cache_get_existence_bitmap(__cache, drv, baseSector + sectorOffset, sectorsToRead);
+			BITMAP_PRIMITIVE readBitmap = 0;
 
 #ifdef DEBUG_NOGBA
 			sprintf(buf, "chunk %ld..=%ld (%ld): " PRINTF_BINARY_PATTERN_INT32,
@@ -263,9 +263,6 @@ DRESULT disk_read(
 
 				if (res != RES_OK)
 					return res;
-
-				// Flush SD read range
-				DC_FlushRange(&buff[(i + sectorOffset) * FF_MAX_SS], lookaheadCount * FF_MAX_SS);
 
 				// Cache read sectors
 				for (int j = 0; j < lookaheadCount; j++)
@@ -335,7 +332,10 @@ DRESULT disk_ioctl(
 	const DISC_INTERFACE *disc_io = NULL;
 	if ((disc_io = get_disc_io(drv)) != NULL)
 	{
-		return disc_io->clearStatus() ? RES_OK : RES_ERROR;
+		if (ctrl == CTRL_SYNC) {
+			return disc_io->clearStatus() ? RES_OK : RES_ERROR;
+		}
+		return RES_OK;
 	}
 	return RES_PARERR;
 }

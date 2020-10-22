@@ -51,7 +51,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 / 
 */
 
-#define SECTORS_PER_CHUNK (sizeof(DWORD) * CHAR_BIT)
+#define BITMAP_PRIMITIVE DWORD
+#define SECTORS_PER_CHUNK (sizeof(BITMAP_PRIMITIVE) * CHAR_BIT)
 
 #if SLIM_USE_CACHE && FF_MAX_SS != FF_MIN_SS
     #error "Cache can only be used for fixed sector size."
@@ -116,17 +117,17 @@ BOOL cache_invalidate_sector(CACHE *cache, BYTE drv, LBA_t sector);
 void cache_invalidate_all(CACHE *cache, BYTE drv);
 
 /**
- * Gets the existence of up to count < 32 consecutive sectors starting
- * from sector as a 32-bit bitmap.
+ * Gets the existence of up to count < sizeof(BITMAP_PRIMITIVE) * CHAR_BIT 
+ * consecutive sectors starting from sector as a bitmap.
  * 
  * For example, if sectors 4, 5, and 6 were cached, the query was 
  * considered for sector = 3 and count = 8, the returned bitmap will be
- * 0x0000000E (1110 in the first nibble is set.)
+ * 0x000E (1110 in the first nibble is set.)
  * 
  * An unset bit does not necessarily mean that the sector is uncached.
  * That may be the case, or it may be the case that it was not within
  * the alloted count.
  */ 
-DWORD cache_get_existence_bitmap(CACHE *cache, BYTE drv, LBA_t sector, BYTE count);
+BITMAP_PRIMITIVE cache_get_existence_bitmap(CACHE *cache, BYTE drv, LBA_t sector, BYTE count);
 #endif
 #endif

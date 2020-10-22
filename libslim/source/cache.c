@@ -52,15 +52,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 typedef struct cache_s
 {
     BYTE data[FF_MAX_SS] __attribute__((aligned(32)));
-
-    WORD __padding;
-
     // Bit 0 is validity. If set to 1, then read will succeed.
     // Bit 1 is reference. If set to 0, then on the next round robin, will be evicted.
     BYTE status;
     BYTE pdrv;
     LBA_t sector;
-} __attribute__((aligned(4))) CACHE;
+} __attribute__((aligned(32))) CACHE;
 
 static int _evictCounter = 0;
 
@@ -222,14 +219,14 @@ void cache_invalidate_all(CACHE *cache, BYTE drv)
     }
 }
 
-DWORD cache_get_existence_bitmap(CACHE *cache, BYTE drv, LBA_t sector, BYTE count)
+BITMAP_PRIMITIVE cache_get_existence_bitmap(CACHE *cache, BYTE drv, LBA_t sector, BYTE count)
 {
     if (!cache)
         return 0;
     if (count > SECTORS_PER_CHUNK)
         return 0;
     
-    DWORD bitmap = 0;
+    BITMAP_PRIMITIVE bitmap = 0;
     for (int i = 0; i < _cacheSize; i++)
     {
         if (VALID(cache[i].status) && cache[i].pdrv == drv)
