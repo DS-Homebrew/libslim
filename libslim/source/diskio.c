@@ -280,7 +280,7 @@ DRESULT disk_read(
 			}
 
 			// If
-			if (__builtin_popcount(readBitmap) != sectorsToRead)
+			if (__builtin_popcountl(readBitmap) != sectorsToRead)
 				return RES_ERROR;
 
 			sectorOffset += sectorsToRead;
