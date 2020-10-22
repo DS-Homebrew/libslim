@@ -54,70 +54,38 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "charset.h"
 #include "cache.h"
 
-bool fatUnmount(const char *mount)
+bool configureDefault(const char *root)
 {
-    RemoveDevice(mount);
-    size_t len = 0;
-    TCHAR *m = mbstoucs2(mount, &len);
-    if (f_mount(NULL, m, 1) != FR_OK)
-    {
+    volno_t vol = get_vol(root);
+    if (vol == -1)
         return false;
+    const char *mount = get_mnt(vol);
+    char filePath[PATH_MAX];
+    strcpy(filePath, mount);
+    strcat(filePath, ":/");
+#ifdef ARGV_SUPPORT
+    if (__system_argv->argvMagic == ARGV_MAGIC && __system_argv->argc >= 1 && (strrchr(__system_argv->argv[0], '/') != NULL))
+    {
+        if (get_disc_io(vol) != NULL && strncasecmp(__system_argv->argv[0], mount, strlen(mount)))
+        {
+            char *lastSlash;
+            strcpy(filePath, __system_argv->argv[0]);
+            lastSlash = strrchr(filePath, '/');
+
+            if (lastSlash != NULL)
+            {
+                if (*(lastSlash - 1) == ':')
+                    lastSlash++;
+                *lastSlash = '\0';
+            }
+        }
     }
+#endif
+    chdir(filePath);
     return true;
 }
 
-bool fatInitDefault(void)
+bool configureCache(uint32_t cacheSize)
 {
-    return fatInit(SLIM_CACHE_SIZE, true);
-}
-
-bool fatInit(uint32_t cacheSize, bool _configureDefault)
-{
-    bool sdMounted = false, fatMounted = false;
-    fatMounted = fatMountSimple(FF_MNT_FC ":", dldiGetInternal());
-    if (isDSiMode())
-    {
-        sdMounted = fatMountSimple(FF_MNT_SD ":", get_io_dsisd());
-    }
-    if (_configureDefault)
-    {
-        configureDefault(sdMounted ? FF_MNT_SD ":" : FF_MNT_FC ":");
-    }
-
-    return sdMounted ? sdMounted : fatMounted;
-}
-
-void fatGetVolumeLabel(const char *mount, char *label)
-{
-    int vol = get_vol(mount);
-    size_t len = 0;
-    if (vol == -1)
-        return;
-    TCHAR label_buf[255] = {0};
-    TCHAR *p = mbstoucs2(mount, &len);
-    f_getlabel(p, label_buf, NULL);
-    ucs2tombs(label, label_buf);
-}
-
-int FAT_getAttr(const char *file)
-{
-    FILINFO stat;
-    size_t len = 0;
-    TCHAR *p = mbstoucs2(file, &len);
-    if (f_stat(p, &stat) == FR_OK)
-    {
-        return stat.fattrib;
-    }
-    return -1;
-}
-
-int FAT_setAttr(const char *file, uint8_t attr)
-{
-    size_t len = 0;
-    TCHAR *p = mbstoucs2(file, &len);
-    if (f_chmod(p, attr, AM_RDO | AM_SYS | AM_HID) == FR_OK)
-    {
-        return 0;
-    }
-    return -1;
+    return cache_init(cacheSize) != NULL;
 }
