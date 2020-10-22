@@ -7,7 +7,7 @@
 #include "ff.h"
 #include <stdlib.h>
 
-#if FF_USE_LFN == 3	|| SLIM_USE_CACHE /* Dynamic memory allocation */
+#if FF_USE_LFN == 3	|| SLIM_USE_CACHE || FF_USE_FASTSEEK/* Dynamic memory allocation */
 
 /*------------------------------------------------------------------------*/
 /* Allocate a memory block                                                */

@@ -220,12 +220,12 @@ int _ELM_open_r(struct _reent *r, void *fileStruct, const char *path, int flags,
     {
         ff_flags |= FA_CREATE_ALWAYS;
     }
-    else 
+    else
     {
         ff_flags |= FA_OPEN_ALWAYS;
     }
 
-    if ((flags & O_APPEND)) 
+    if ((flags & O_APPEND))
     {
         ff_flags |= FA_OPEN_APPEND;
     }
@@ -233,25 +233,21 @@ int _ELM_open_r(struct _reent *r, void *fileStruct, const char *path, int flags,
     elm_error = f_open(fp, p, ff_flags);
 
 #if FF_USE_FASTSEEK
-    if ((flags & O_RDONLY)) // Enable fast seek if read only
+    if ((flags & O_RDONLY) && elm_error == FR_OK) // Enable fast seek if read only
     {
         FSIZE_t ptr = f_tell(fp);
-        if (elm_error == FR_OK)
-        {
-            fp->cltbl = ff_memalloc(FF_FASTSEEK_TBL_SZ * sizeof(DWORD));
-            fp->cltbl[0] = FF_FASTSEEK_TBL_SZ;
-            elm_error = f_lseek(fp, CREATE_LINKMAP);
-        }
 
-        if (elm_error == FR_OK)
-        {
-            elm_error = f_lseek(fp, ptr);
-        }
-        else
+        fp->cltbl = ff_memalloc(FF_FASTSEEK_TBL_SZ * sizeof(DWORD));
+        fp->cltbl[0] = FF_FASTSEEK_TBL_SZ;
+        elm_error = f_lseek(fp, CREATE_LINKMAP);
+
+        if (elm_error != FR_OK)
         {
             ff_memfree(fp->cltbl);
             fp->cltbl = NULL;
         }
+
+        elm_error = f_lseek(fp, ptr);
     }
 #endif
     return _ELM_errnoparse(r, (int)fp, -1);
@@ -281,7 +277,7 @@ ssize_t _ELM_write_r(struct _reent *r, void *fd, const char *ptr, size_t len)
     {
         f_lseek(fp, f_size(fp));
     }
-    
+
     UINT written = 0;
     elm_error = f_write(fp, ptr, len, &written);
     return _ELM_errnoparse(r, written, -1);
