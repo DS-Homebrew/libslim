@@ -54,8 +54,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CHECK_BIT(v, n) (((v) >> (n)) & 1)
 #define BIT_SET(n) (1 << (n))
 
-#define DEBUG_NOGBA
-
 #ifdef DEBUG_NOGBA
 #include <nds/debug.h>
 #endif
@@ -144,8 +142,8 @@ DRESULT disk_read_internal(
 BYTE get_disk_lookahead(DWORD bitmap, BYTE currentSector, BYTE maxCount)
 {
 	if ((bitmap >> currentSector) == 0)
-		  return maxCount;
-    return MIN(maxCount, __builtin_ctzl(bitmap >> currentSector));
+		return maxCount;
+	return MIN(maxCount, __builtin_ctzl(bitmap >> currentSector));
 }
 
 DRESULT disk_read(
@@ -279,7 +277,8 @@ DRESULT disk_read(
 				i += lookaheadCount;
 			}
 
-			// If
+			// If the number of read sectors in the chunk is wrong
+			// we messed up.
 			if (__builtin_popcountl(readBitmap) != sectorsToRead)
 				return RES_ERROR;
 
