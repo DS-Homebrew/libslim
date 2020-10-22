@@ -194,9 +194,10 @@ DRESULT disk_read(
 		LBA_t sectorOffset = 0;
 		while (sectorsRemaining)
 		{
-			// BYTE sectorsToRead = MIN((BYTE)SECTORS_PER_CHUNK, sectorsRemaining);
-			const BYTE sectorsToRead = MIN(4, sectorsRemaining);
+			BYTE sectorsToRead = MIN((BYTE)SECTORS_PER_CHUNK, sectorsRemaining);
 #ifdef DEBUG_NOGBA
+			// Limiting to chunks of 4 to test correctness
+			sectorsToRead = MIN(4, sectorsRemaining);
 			sprintf(buf, "load: chunk of %d (%d remaining, total %ld/%d) sectors starting %ld", sectorsToRead, sectorsRemaining,
 					sectorOffset, count, baseSector + sectorOffset);
 			nocashMessage(buf);
