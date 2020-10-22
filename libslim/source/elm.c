@@ -60,6 +60,8 @@ static FATFS _elm[FF_VOLUMES];
 #error Wrong sector size.
 #endif
 
+#define FF_FASTSEEK_TBL_SZ 22
+
 int _ELM_open_r(struct _reent *r, void *fileStruct, const char *path, int flags, int mode);
 int _ELM_close_r(struct _reent *r, void *fd);
 ssize_t _ELM_write_r(struct _reent *r, void *fd, const char *ptr, size_t len);
@@ -182,19 +184,21 @@ ssize_t _ELM_errnoparse(struct _reent *r, ssize_t suc, int fail)
 int _ELM_open_r(struct _reent *r, void *fileStruct, const char *path, int flags, int mode)
 {
     FIL *fp = (FIL *)fileStruct;
-    BYTE ff_flags = 0;
-    BOOL truncate = false;
     const TCHAR *p = mbstoucs2(_ELM_realpath(path), NULL);
 
-    if ((flags & O_RDONLY & O_WRONLY) || ((flags & O_RDWR) & (O_RDONLY | O_WRONLY))) {
+    BYTE ff_flags = 0;
+
+    if ((flags & O_RDONLY & O_WRONLY) || ((flags & O_RDWR) & (O_RDONLY | O_WRONLY)))
+    {
         r->_errno = EINVAL;
         return -1;
     }
-    if (flags & O_RDONLY & O_APPEND) {
+    if (flags & O_RDONLY & O_APPEND)
+    {
         r->_errno = EINVAL;
         return -1;
     }
-    
+
     if (flags & O_WRONLY)
     {
         ff_flags |= FA_WRITE;
@@ -208,42 +212,46 @@ int _ELM_open_r(struct _reent *r, void *fileStruct, const char *path, int flags,
         ff_flags |= FA_READ;
     }
 
-    if (flags & O_CREAT)
+    if ((flags & O_CREAT) && (flags & O_EXCL))
     {
-        if (flags & O_EXCL)
-            ff_flags |= FA_CREATE_NEW;
-        else if (flags & O_TRUNC)
-            ff_flags |= FA_CREATE_ALWAYS;
-        else
-            ff_flags |= FA_OPEN_ALWAYS;
+        ff_flags |= FA_CREATE_NEW;
     }
-    else
+    else if (flags & O_TRUNC)
     {
-        if (flags & O_TRUNC)
-            truncate = true;
-        ff_flags |= FA_OPEN_EXISTING;
+        ff_flags |= FA_CREATE_ALWAYS;
+    }
+    else 
+    {
+        ff_flags |= FA_OPEN_ALWAYS;
     }
 
-    
+    if ((flags & O_APPEND)) 
+    {
+        ff_flags |= FA_OPEN_APPEND;
+    }
+
     elm_error = f_open(fp, p, ff_flags);
-    if (elm_error == FR_OK && truncate)
-    {
-        elm_error = f_truncate(fp);
-    }
-    if (elm_error == FR_OK && (flags & O_APPEND))
-    {
-        elm_error = f_lseek(fp, fp->obj.objsize);
-    }
+
 #if FF_USE_FASTSEEK
-    if (elm_error == FR_OK)
+    if ((flags & O_RDONLY)) // Enable fast seek if read only
     {
-        fp->cltbl = clmt;
-        clmt[0] = 20;
-        elm_error = f_lseek(fp, CREATE_LINKMAP);
-    }
-    if (elm_error == FR_OK)
-    {
-        elm_error = f_lseek(fp, 0);
+        FSIZE_t ptr = f_tell(fp);
+        if (elm_error == FR_OK)
+        {
+            fp->cltbl = ff_memalloc(FF_FASTSEEK_TBL_SZ * sizeof(DWORD));
+            fp->cltbl[0] = FF_FASTSEEK_TBL_SZ;
+            elm_error = f_lseek(fp, CREATE_LINKMAP);
+        }
+
+        if (elm_error == FR_OK)
+        {
+            elm_error = f_lseek(fp, ptr);
+        }
+        else
+        {
+            ff_memfree(fp->cltbl);
+            fp->cltbl = NULL;
+        }
     }
 #endif
     return _ELM_errnoparse(r, (int)fp, -1);
@@ -252,6 +260,14 @@ int _ELM_open_r(struct _reent *r, void *fileStruct, const char *path, int flags,
 int _ELM_close_r(struct _reent *r, void *fd)
 {
     FIL *fp = (FIL *)fd;
+#if FF_USE_FASTSEEK
+    // Free CLMT if used
+    if (fp->cltbl)
+    {
+        ff_memfree(fp->cltbl);
+        fp->cltbl = NULL;
+    }
+#endif
     elm_error = f_close(fp);
     return _ELM_errnoparse(r, 0, -1);
 }
@@ -260,6 +276,12 @@ ssize_t _ELM_write_r(struct _reent *r, void *fd, const char *ptr, size_t len)
 {
 #if !FF_FS_READONLY
     FIL *fp = (FIL *)fd;
+
+    if (fp->flag & FA_OPEN_APPEND)
+    {
+        f_lseek(fp, f_size(fp));
+    }
+    
     UINT written = 0;
     elm_error = f_write(fp, ptr, len, &written);
     return _ELM_errnoparse(r, written, -1);
@@ -403,7 +425,6 @@ int _ELM_stat_r(struct _reent *r, const char *file, struct stat *st)
 
     int vol;
 
-
     if ((vol = get_vol(file)) != -1)
     {
         _ELM_disk_to_stat(vol, st);
@@ -412,7 +433,7 @@ int _ELM_stat_r(struct _reent *r, const char *file, struct stat *st)
 
     FILINFO fi;
     fi.fsize = sizeof(fi.fname) / sizeof(fi.fname[0]);
-    
+
     elm_error = f_stat(p, &fi);
     _ELM_fileinfo_to_stat(&fi, st);
     return _ELM_errnoparse(r, 0, -1);
