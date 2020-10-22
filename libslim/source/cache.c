@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdio.h>
 #include <string.h>
+#include <limits.h>
 
 #include <nds/dma.h>
 #include <nds/arm9/cache.h>
@@ -41,9 +42,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <nds/debug.h>
 #endif
 
-#define CHECK_BIT(v, p) (((v) >> (p)) & 1)
+#define CHECK_BIT(v, n) (((v) >> (n)) & 1)
 #define VALID(v) CHECK_BIT(v, 0)
 #define REFERENCED(v) CHECK_BIT(v, 1)
+#define BIT_SET(n)   (1 << (n))
 
 #define CACHE_LINE_SIZE 32
 
@@ -132,9 +134,9 @@ BOOL cache_load_sector(CACHE *cache, BYTE drv, LBA_t sector, BYTE *dst)
     }
 
 #ifdef DEBUG_NOGBA
-    char block[256];
-    sprintf(block, "HIT: d: %d, s: %ld, b: %d", drv, sector, i);
-    nocashMessage(block);
+    // char block[256];
+    // sprintf(block, "HIT: d: %d, s: %ld, b: %d", drv, sector, i);
+    // nocashMessage(block);
 #endif
     // Set referenced bit
     cache[i].status |= 0b10;
@@ -160,15 +162,15 @@ void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src)
         else
         {
             // Clear reference bit
-            cache[_evictCounter].status &= ~(1U << 1);
+            cache[_evictCounter].status &= ~BIT_SET(1);
         }
         _evictCounter = ((_evictCounter + 1) % _cacheSize);
     }
 
 #ifdef DEBUG_NOGBA
-    char block[256];
-    sprintf(block, "S: d: %d, s: %ld, fb: %d, cs: %u", drv, sector, free_block, _cacheSize);
-    nocashMessage(block);
+    // char block[256];
+    // sprintf(block, "S: d: %d, s: %ld, fb: %d, cs: %u", drv, sector, free_block, _cacheSize);
+    // nocashMessage(block);
 #endif
 
     // Set valid and unreferenced
@@ -218,4 +220,26 @@ void cache_invalidate_all(CACHE *cache, BYTE drv)
     {
         cache[i].status = (BYTE)00;
     }
+}
+
+DWORD cache_get_existence_bitmap(CACHE *cache, BYTE drv, LBA_t sector, BYTE count)
+{
+    if (!cache)
+        return 0;
+    if (count > SECTORS_PER_CHUNK)
+        return 0;
+    
+    DWORD bitmap = 0;
+    for (int i = 0; i < _cacheSize; i++)
+    {
+        if (VALID(cache[i].status) && cache[i].pdrv == drv)
+        {
+            int cachedSector = cache[i].sector;
+            int relativeSector = cachedSector - sector;
+            if (relativeSector < 0 || relativeSector >= count)
+                continue;
+            bitmap |= BIT_SET(relativeSector);
+        }
+    }
+    return bitmap;
 }
