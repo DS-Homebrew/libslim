@@ -230,7 +230,6 @@ DRESULT disk_read(
 				}
 				else 
 				{
-					DC_FlushRange(buff, FF_MAX_SS);
 					tonccpy(working_buf, buff, FF_MAX_SS);
 					cache_store_sector(__cache, drv, baseSector, working_buf, 2);
 				}
