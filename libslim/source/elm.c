@@ -59,7 +59,7 @@ static FATFS _elm[FF_VOLUMES];
 #error Wrong sector size.
 #endif
 
-#define FF_FASTSEEK_TBL_SZ 22
+#define FF_FASTSEEK_TBL_SZ 24
 
 int _ELM_open_r(struct _reent *r, void *fileStruct, const char *path, int flags, int mode);
 int _ELM_close_r(struct _reent *r, void *fd);

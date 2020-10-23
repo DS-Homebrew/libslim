@@ -29,39 +29,46 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __SLIM_CACHE_H__
 #include "ff.h"
 
+/**
+ * This option defines how the cache will be implemented
+ * 
+ * 0 - Cache is disabled
+ * 1 - Cache on heap memory is used
+ * 
+ */
 #define SLIM_USE_CACHE 1
-/**
-/ This option defines how the cache will be implemented
-/ 
-/ 0 - Cache is disabled
-/ 1 - Cache on heap memory is used
-/ 
-*/
 
+
+/**
+ * This option defines the default cache size in number of sectors
+ */
 #define SLIM_CACHE_SIZE 64
-/* This option defines the default cache size in number of sectors
-*/
 
+/**
+ * This option defines whether or not to use DMA to store sectors to the cache
+ *
+ * 0 - Uses a CPU memcpy to store sectors
+ * 1 - Uses DMA to store sectors
+ *
+ */
 #define SLIM_DMA_CACHE_STORE 0
+
 /**
-/ This option defines whether or not to use DMA to store sectors to the cache
-/ 
-/ 0 - Uses a CPU memcpy to store sectors
-/ 1 - Uses DMA to store sectors
-/ 
-*/
-
-#define BITMAP_PRIMITIVE DWORD
-#define SECTORS_PER_CHUNK (sizeof(BITMAP_PRIMITIVE) * CHAR_BIT)
-
+ * This option configures how to read sectors
+ * 
+ * 0 - Sectors are read 1 by 1 from the SD card
+ * 1 - Sectors are read in chunks, greedily from SD card
+ */
 #define SLIM_CHUNKED_READS 1
+
 /**
-/ This option configures how to read sectors
-/ 
-/ 0 - Sectors are read 1 by 1 from the SD card
-/ 1 - Sectors are read in chunks, greedily from SD card
-/ 
-*/
+ * **YOU SHOULD NOT NEED TO CHANGE THIS OPTION**
+ * 
+ * Specifies the primitive to use as a 
+ */
+#define BITMAP_PRIMITIVE DWORD
+
+#define SECTORS_PER_CHUNK (sizeof(BITMAP_PRIMITIVE) * CHAR_BIT)
 
 #if SLIM_USE_CACHE && FF_MAX_SS != FF_MIN_SS
     #error "Cache can only be used for fixed sector size."
@@ -74,7 +81,8 @@ typedef struct cache_s CACHE;
  * Initializes the cache with the specified cache and sector size.
  * 
  * On the default implementation, there is only a single cache instance that 
- * is supported. Hence, this method should be idempotent.
+ * is supported. Hence, this method should be idempotent. The default cache uses
+ * the GCLOCK eviction algorithm to approximate LFRU without a lot of overhead.  
  * 
  * On success, a valid pointer to a CACHE instance will be returned.
  * 

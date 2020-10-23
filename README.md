@@ -2,7 +2,7 @@
 
 A revival of libELM for use with the Nintendo DS, based off modern FatFS.
 
-libslim aims to be a lightweight drop-in compatible with libfat in the common modern use case and provides only 2 stdio devices instead of libfat
+libslim aims to be a lightweight drop-in compatible with libfat in the common modern use case and provides only 2 stdio devices instead of libfat's more flexible options. 
 
   * `fat:/` for the SLOT-1 flashcart device
   * `sd:/` for the TWL-mode SD card
@@ -97,30 +97,51 @@ Configures filtering of `.` and `..` entries in `readdir`.
   
 Enabling this option (by default) will disable support for `rmdir`.
 
+#### `FF_USE_FASTSEEK`
+
+**Default:** `1` (Enabled)
+
+Configures the use of the FAT cluster chain caching (["fastseek"](http://elm-chan.org/fsw/ff/doc/lseek.html)) feature in FatFS. 
+
+Fastseek will only be enabled for files opened in read-only (`"r"`) to ensure proper functionality of `truncate` and `fwrite`. It will heap-allocate 96 bytes of memory per opened file, freed on `fclose`. 
+
 ### Cache Options
+
+libslim uses a comparatively more lightweight GCLOCK-based cache with many configuration options that can be tweaked to fit a particular use case. 
 
 #### `SLIM_USE_CACHE`
 
 **Default:** `1` (Enabled)
 
-Configures the use of the sector cache. This should be enabled for most use cases. If you decide not to use the cache, the recommended route is to use runtime cache configuration.
+Configures the use of the sector cache. This should be enabled for most use cases. If you decide not to use the cache, the recommended route is to use runtime cache configuration instead of disabling the cache through this define. The cache uses `512 + (CACHE_SIZE * 544)`  bytes of memory, heap allocated on first mount.
 
 #### `SLIM_CACHE_SIZE`
 
 **Default:** `64`
 
-Configures the size (in number of sectors) of the cache. By default, 64 sectors will be cached, if not otherwise set at runtime.
+Configures the size (in number of sectors) of the cache. By default, 64 sectors will be cached, if not otherwise set at runtime. The default cache size of 64 results in a total reserved space of 34.5KiB used for the cache.
 
 #### `SLIM_DMA_CACHE_STORE`
 
 **Default:** `0` (Disabled)
 
-Configures whether or not to use DMA copies to write to the cache. May result in a speedup for frequent disk access, but 
-is disabled by default.
+Configures whether or not to use DMA copies to write to the cache. May result in a speedup if you need frequent streaming
+disk access, but is not generally needed, and may cause issues with IRQ sensitive code.
 
+#### `SLIM_CHUNKED_READS`
+
+**Default:** `1` (Enabled)
+
+Configures whether or not libslim will maximize the size of SD card reads when caching is enabled. 
+
+If caching is enabled, and `SLIM_CHUNKED_READS` is disabled, sectors will be read one-by-one from the SD card using a separate request for each sector. This could result in degraded performance, but will take up a smaller code space. 
+
+If caching is enabled, and `SLIM_CHUNKED_READS` is enabled, cached sectors will first be read, then uncached sectors are 'greedily' read in chunks of up to 32 sectors per SD card request, and used to 'fill in the blanks', to minimize the number of SD card accesses while still accounting for cached sectors.
+
+If caching is disabled either in runtime or via `SLIM_USE_CACHE`, this has no effect, and libslim will always read the full number of requested sectors in a single request.
 
 ### Runtime Configuration API
-libslim provides a runtime configuration API that does not have an analogue in libfat
+libslim provides a runtime configuration API that does not have an exact analogue in libfat.
 
 #### Default Device
 The default device is automatically configured if the `fatInit` or `fatInitDefault` APIs are used, as is done in libfat. However, the `fatMountSimple` API differs significantly from libfat, and does not set the default device.
