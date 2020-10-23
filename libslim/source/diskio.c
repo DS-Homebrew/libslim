@@ -202,7 +202,8 @@ DRESULT disk_read(
 			{
 				// Most read requests are single sector anyways.
 				res = disk_read_internal(drv, working_buf, baseSector + i, 1);
-				cache_store_sector(__cache, drv, baseSector + i, working_buf);
+				// single sector reads are more likely to be reused
+				cache_store_sector(__cache, drv, baseSector + i, working_buf, count > 1 ? 1 : 2);
 				tonccpy(&buff[i * FF_MAX_SS], working_buf, FF_MAX_SS);
 			}
 		}
@@ -220,15 +221,17 @@ DRESULT disk_read(
 			else
 			{
 				// This is a single sector read.
+				// Single sector reads are more likely to be reused 
+				// so we assign higher weights
 				res = disk_read_internal(drv, buff, baseSector, 1);
 				if (DMA_ACCESS((uint32_t)buff))
 				{
-					cache_store_sector(__cache, drv, baseSector, buff);
+					cache_store_sector(__cache, drv, baseSector, buff, 2);
 				}
 				else 
 				{
 					tonccpy(working_buf, buff, FF_MAX_SS);
-					cache_store_sector(__cache, drv, baseSector, working_buf);
+					cache_store_sector(__cache, drv, baseSector, working_buf, 2);
 				}
 			}
 			return res;
@@ -319,12 +322,12 @@ DRESULT disk_read(
 					readBitmap |= BIT_SET((i + j));
 					if (DMA_ACCESS((uint32_t)&buff[(i + j + sectorOffset) * FF_MAX_SS])) 
 					{
-						cache_store_sector(__cache, drv, baseSector + sectorOffset + i + j, &buff[(i + j + sectorOffset) * FF_MAX_SS]);
+						cache_store_sector(__cache, drv, baseSector + sectorOffset + i + j, &buff[(i + j + sectorOffset) * FF_MAX_SS], 1);
 					}
 					else 
 					{
 						tonccpy(working_buf, &buff[(i + j + sectorOffset) * FF_MAX_SS], FF_MAX_SS);
-						cache_store_sector(__cache, drv, baseSector + sectorOffset + i + j, working_buf);
+						cache_store_sector(__cache, drv, baseSector + sectorOffset + i + j, working_buf, 1);
 					}
 				}
 
