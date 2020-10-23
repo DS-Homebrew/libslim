@@ -113,9 +113,10 @@ Configures the size (in number of sectors) of the cache. By default, 64 sectors 
 
 #### `SLIM_DMA_CACHE_STORE`
 
-**Default:** `1` (Enabled)
+**Default:** `0` (Disabled)
 
-Configures whether or not to use DMA copies to write to the cache. Disable if you are having issues with FIFO, DMA saturation, or memory corruption issues.
+Configures whether or not to use DMA copies to write to the cache. May result in a speedup for frequent disk access, but 
+is disabled by default.
 
 
 ### Runtime Configuration API

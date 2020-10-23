@@ -42,7 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* This option defines the default cache size in number of sectors
 */
 
-#define SLIM_DMA_CACHE_STORE 1
+#define SLIM_DMA_CACHE_STORE 0
 /**
 / This option defines whether or not to use DMA to store sectors to the cache
 / 
