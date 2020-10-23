@@ -314,8 +314,6 @@ DRESULT disk_read(
 					return res;
 				}
 
-				DC_FlushRange(&buff[(i + sectorOffset) * FF_MAX_SS], lookaheadCount * FF_MAX_SS);
-
 				// Cache read sectors
 				for (int j = 0; j < lookaheadCount; j++)
 				{
