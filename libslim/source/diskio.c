@@ -191,7 +191,7 @@ DRESULT disk_read(
 			return disk_read_internal(drv, buff, baseSector, count);
 		}
 
-#ifdef SLIM_UNCHUNKED_READS
+#if !SLIM_CHUNKED_READS
 		for (BYTE i = 0; i < count; i++)
 		{
 			if (cache_load_sector(__cache, drv, baseSector + i, &buff[i * FF_MAX_SS]))

@@ -54,6 +54,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define BITMAP_PRIMITIVE DWORD
 #define SECTORS_PER_CHUNK (sizeof(BITMAP_PRIMITIVE) * CHAR_BIT)
 
+#define SLIM_CHUNKED_READS 0
+/**
+/ This option configures how to read sectors
+/ 
+/ 0 - Sectors are read 1 by 1 from the SD card
+/ 1 - Sectors are read in chunks, greedily from SD card
+/ 
+*/
+
 #if SLIM_USE_CACHE && FF_MAX_SS != FF_MIN_SS
     #error "Cache can only be used for fixed sector size."
 #endif
