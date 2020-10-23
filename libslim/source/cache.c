@@ -43,6 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #define CACHE_LINE_SIZE 32
+#define BIT_SET(n) (1 << (n))
 
 typedef struct cache_s
 {
@@ -54,7 +55,6 @@ typedef struct cache_s
     BYTE valid;
     BYTE pdrv;
     LBA_t sector;
-    WORD __padding;
 } __attribute__((aligned(32))) CACHE;
 
 static int _evictCounter = 0;
