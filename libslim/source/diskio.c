@@ -50,8 +50,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cache.h"
 
-#define DEBUG_NOGBA
-
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #define CHECK_BIT(v, n) (((v) >> (n)) & 1)
 #define BIT_SET(n) (1 << (n))
@@ -302,8 +300,10 @@ DRESULT disk_read(
 										 baseSector + sectorOffset + i, lookaheadCount);
 
 				if (res != RES_OK) {
+#ifdef DEBUG_NOGBA
 					sprintf(buf, "FL: sO: %ld, i: %ld, n: %d", sectorOffset, i, lookaheadCount);
 					nocashMessage(buf);
+#endif
 					return res;
 				}
 
