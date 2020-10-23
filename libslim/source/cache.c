@@ -149,6 +149,9 @@ void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src)
     if (!cache || _cacheSize == 0)
         return;
 
+    // Invalidate sector if exists
+    cache_invalidate_sector(__cache, drv, sector);
+
     int free_block = -1;
 
     while (free_block < 0)
@@ -187,7 +190,7 @@ void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src)
     if ((dst + FF_MAX_SS) % CACHE_LINE_SIZE)
         DC_FlushRange((void *)(dst + FF_MAX_SS), 1);
 
-    dmaCopyWords(0, src, &cache[free_block].data, FF_MAX_SS);
+    dmaCopyWords(3, src, &cache[free_block].data, FF_MAX_SS);
     DC_InvalidateRange(&cache[free_block].data, FF_MAX_SS);
 
 #else

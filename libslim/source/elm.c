@@ -50,7 +50,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int elm_error;
 
 static FATFS _elm[FF_VOLUMES];
-// static DWORD clmt[20];
 
 #if FF_MAX_SS == 512 /* Single sector size */
 #define ELM_SS(fs) 512U

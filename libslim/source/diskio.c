@@ -101,6 +101,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if SLIM_USE_CACHE
 static CACHE *__cache;
 static BYTE working_buf[FF_MAX_SS] __attribute__((aligned(32)));
+#define DMA_ACCESS(ad) (((!((ad>>24)==0x01 || (ad>>24)==0x0B || (ad>>24)==0xFF))) && (!(ad & 0x3)))
+
 #endif
 /*-----------------------------------------------------------------------*/
 /* Initialize a Drive                                                    */
@@ -218,9 +220,16 @@ DRESULT disk_read(
 			else
 			{
 				// This is a single sector read.
-				res = disk_read_internal(drv, working_buf, baseSector, 1);
-				cache_store_sector(__cache, drv, baseSector, working_buf);
-				tonccpy(buff, working_buf, FF_MAX_SS);
+				res = disk_read_internal(drv, buff, baseSector, 1);
+				if (DMA_ACCESS((uint32_t)buff))
+				{
+					cache_store_sector(__cache, drv, baseSector, buff);
+				}
+				else 
+				{
+					tonccpy(working_buf, buff, FF_MAX_SS);
+					cache_store_sector(__cache, drv, baseSector, working_buf);
+				}
 			}
 			return res;
 		}
@@ -308,8 +317,15 @@ DRESULT disk_read(
 				for (int j = 0; j < lookaheadCount; j++)
 				{
 					readBitmap |= BIT_SET((i + j));
-					tonccpy(working_buf, &buff[(i + j + sectorOffset) * FF_MAX_SS], FF_MAX_SS);
-					cache_store_sector(__cache, drv, baseSector + sectorOffset + i + j, working_buf);
+					if (DMA_ACCESS((uint32_t)&buff[(i + j + sectorOffset) * FF_MAX_SS])) 
+					{
+						cache_store_sector(__cache, drv, baseSector + sectorOffset + i + j, &buff[(i + j + sectorOffset) * FF_MAX_SS]);
+					}
+					else 
+					{
+						tonccpy(working_buf, &buff[(i + j + sectorOffset) * FF_MAX_SS], FF_MAX_SS);
+						cache_store_sector(__cache, drv, baseSector + sectorOffset + i + j, working_buf);
+					}
 				}
 
 				i += lookaheadCount;
