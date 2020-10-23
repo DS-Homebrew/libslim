@@ -57,6 +57,7 @@ typedef struct cache_s
     BYTE status;
     BYTE pdrv;
     LBA_t sector;
+    WORD __padding;
 } __attribute__((aligned(32))) CACHE;
 
 static int _evictCounter = 0;

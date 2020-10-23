@@ -50,12 +50,52 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cache.h"
 
+#define DEBUG_NOGBA
+
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #define CHECK_BIT(v, n) (((v) >> (n)) & 1)
 #define BIT_SET(n) (1 << (n))
 
+#define CTZL(b) _Generic((b), \
+	unsigned long long: __builtin_ctzll, \
+		 unsigned long: __builtin_ctzl, \
+		  unsigned int: __builtin_ctz, \
+		  	   default: __builtin_ctz \
+)(b)
+
+#define POPCNT(b) _Generic((b), \
+	unsigned long long: __builtin_popcountll, \
+		 unsigned long: __builtin_popcountl, \
+		  unsigned int: __builtin_popcount, \
+		  	   default: __builtin_popcount \
+)(b)
+
 #ifdef DEBUG_NOGBA
 #include <nds/debug.h>
+
+#define PRINTF_BINARY_PATTERN_INT8 "%c%c%c%c%c%c%c%c"
+#define PRINTF_BYTE_TO_BINARY_INT8(i) \
+	(((i)&0x80ll) ? '1' : '0'),       \
+		(((i)&0x40ll) ? '1' : '0'),   \
+		(((i)&0x20ll) ? '1' : '0'),   \
+		(((i)&0x10ll) ? '1' : '0'),   \
+		(((i)&0x08ll) ? '1' : '0'),   \
+		(((i)&0x04ll) ? '1' : '0'),   \
+		(((i)&0x02ll) ? '1' : '0'),   \
+		(((i)&0x01ll) ? '1' : '0')
+
+#define PRINTF_BINARY_PATTERN_INT16 \
+	PRINTF_BINARY_PATTERN_INT8 PRINTF_BINARY_PATTERN_INT8
+#define PRINTF_BYTE_TO_BINARY_INT16(i) \
+	PRINTF_BYTE_TO_BINARY_INT8((i) >> 8), PRINTF_BYTE_TO_BINARY_INT8(i)
+#define PRINTF_BINARY_PATTERN_INT32 \
+	PRINTF_BINARY_PATTERN_INT16 PRINTF_BINARY_PATTERN_INT16
+#define PRINTF_BYTE_TO_BINARY_INT32(i) \
+	PRINTF_BYTE_TO_BINARY_INT16((i) >> 16), PRINTF_BYTE_TO_BINARY_INT16(i)
+#define PRINTF_BINARY_PATTERN_INT64 \
+	PRINTF_BINARY_PATTERN_INT32 PRINTF_BINARY_PATTERN_INT32
+#define PRINTF_BYTE_TO_BINARY_INT64(i) \
+	PRINTF_BYTE_TO_BINARY_INT32((i) >> 32), PRINTF_BYTE_TO_BINARY_INT32(i)
 #endif
 
 #if SLIM_USE_CACHE
@@ -101,7 +141,7 @@ DSTATUS disk_status(
 /*-----------------------------------------------------------------------*/
 /* Read Sector(s)                                                        */
 
-DRESULT disk_read_internal(
+static inline DRESULT disk_read_internal(
 	BYTE drv,	  /* Physical drive nmuber (0..) */
 	BYTE *buff,	  /* Data buffer to store read data */
 	LBA_t sector, /* Sector address (LBA) */
@@ -115,35 +155,12 @@ DRESULT disk_read_internal(
 	}
 	return RES_PARERR;
 }
-#define PRINTF_BINARY_PATTERN_INT8 "%c%c%c%c%c%c%c%c"
-#define PRINTF_BYTE_TO_BINARY_INT8(i) \
-	(((i)&0x80ll) ? '1' : '0'),       \
-		(((i)&0x40ll) ? '1' : '0'),   \
-		(((i)&0x20ll) ? '1' : '0'),   \
-		(((i)&0x10ll) ? '1' : '0'),   \
-		(((i)&0x08ll) ? '1' : '0'),   \
-		(((i)&0x04ll) ? '1' : '0'),   \
-		(((i)&0x02ll) ? '1' : '0'),   \
-		(((i)&0x01ll) ? '1' : '0')
-
-#define PRINTF_BINARY_PATTERN_INT16 \
-	PRINTF_BINARY_PATTERN_INT8 PRINTF_BINARY_PATTERN_INT8
-#define PRINTF_BYTE_TO_BINARY_INT16(i) \
-	PRINTF_BYTE_TO_BINARY_INT8((i) >> 8), PRINTF_BYTE_TO_BINARY_INT8(i)
-#define PRINTF_BINARY_PATTERN_INT32 \
-	PRINTF_BINARY_PATTERN_INT16 PRINTF_BINARY_PATTERN_INT16
-#define PRINTF_BYTE_TO_BINARY_INT32(i) \
-	PRINTF_BYTE_TO_BINARY_INT16((i) >> 16), PRINTF_BYTE_TO_BINARY_INT16(i)
-#define PRINTF_BINARY_PATTERN_INT64 \
-	PRINTF_BINARY_PATTERN_INT32 PRINTF_BINARY_PATTERN_INT32
-#define PRINTF_BYTE_TO_BINARY_INT64(i) \
-	PRINTF_BYTE_TO_BINARY_INT32((i) >> 32), PRINTF_BYTE_TO_BINARY_INT32(i)
 
 static inline BYTE get_disk_lookahead(DWORD bitmap, BYTE currentSector, BYTE maxCount)
 {
 	if ((bitmap >> currentSector) == 0)
 		return maxCount;
-	return MIN(maxCount, __builtin_ctzl(bitmap >> currentSector));
+	return MIN(maxCount, CTZL(bitmap >> currentSector));
 }
 
 DRESULT disk_read(
@@ -154,7 +171,6 @@ DRESULT disk_read(
 )
 {
 	DRESULT res = RES_PARERR;
-	BYTE sectorsRemaining = count;
 
 	if (VALID_DISK(drv))
 	{
@@ -173,9 +189,28 @@ DRESULT disk_read(
 			return disk_read_internal(drv, buff, baseSector, count);
 		}
 
+#ifdef SLIM_UNCHUNKED_READS
+		for (BYTE i = 0; i < count; i++)
+		{
+			if (cache_load_sector(__cache, drv, baseSector + i, &buff[i * FF_MAX_SS]))
+			{
+				res = RES_OK;
+			}
+			else
+			{
+				// Most read requests are single sector anyways.
+				res = disk_read_internal(drv, working_buf, baseSector + i, 1);
+				cache_store_sector(__cache, drv, baseSector + i, working_buf);
+				tonccpy(&buff[i * FF_MAX_SS], working_buf, FF_MAX_SS);
+			}
+		}
+
+		return res;
+#endif
 		// If we're only loading one sector, no need to engage more complicated searches
 		if (count == 1)
 		{
+		
 			if (cache_load_sector(__cache, drv, baseSector, buff))
 			{
 				res = RES_OK;
@@ -192,13 +227,13 @@ DRESULT disk_read(
 
 		// Optimized path for multi-sector reads to minimize SD card requests
 		LBA_t sectorOffset = 0;
-		while (sectorsRemaining)
+		while (sectorOffset < count)
 		{
-			BYTE sectorsToRead = MIN((BYTE)SECTORS_PER_CHUNK, sectorsRemaining);
+			BYTE sectorsToRead = MIN((BYTE)SECTORS_PER_CHUNK, count - sectorOffset);
 #ifdef DEBUG_NOGBA
 			// Limiting to chunks of 4 to test correctness
-			sectorsToRead = MIN(4, sectorsRemaining);
-			sprintf(buf, "load: chunk of %d (%d remaining, total %ld/%d) sectors starting %ld", sectorsToRead, sectorsRemaining,
+			// sectorsToRead = MIN(4, sectorsRemaining);
+			sprintf(buf, "load: chunk of %d (%ld remaining, total %ld/%d) sectors starting %ld", sectorsToRead, count - sectorOffset,
 					sectorOffset, count, baseSector + sectorOffset);
 			nocashMessage(buf);
 #endif
@@ -261,8 +296,13 @@ DRESULT disk_read(
 				res = disk_read_internal(drv, &buff[(i + sectorOffset) * FF_MAX_SS],
 										 baseSector + sectorOffset + i, lookaheadCount);
 
-				if (res != RES_OK)
+				if (res != RES_OK) {
+					sprintf(buf, "FL: sO: %ld, i: %ld, n: %d", sectorOffset, i, lookaheadCount);
+					nocashMessage(buf);
 					return res;
+				}
+
+				DC_FlushRange(&buff[(i + sectorOffset) * FF_MAX_SS], lookaheadCount * FF_MAX_SS);
 
 				// Cache read sectors
 				for (int j = 0; j < lookaheadCount; j++)
@@ -277,11 +317,21 @@ DRESULT disk_read(
 
 			// If the number of read sectors in the chunk is wrong
 			// we messed up.
-			if (__builtin_popcountl(readBitmap) != sectorsToRead)
+			if (POPCNT(readBitmap) != sectorsToRead) 
+			{
+#ifdef DEBUG_NOGBA
+				sprintf(buf, "Error: read count mismatch, expected %d, actual %d, s0: %ld, sR: %ld", 
+					sectorsToRead, 
+					POPCNT(readBitmap),
+					sectorOffset,
+					count - sectorOffset
+					);
+				nocashMessage(buf);
+#endif
 				return RES_ERROR;
-
+			}
+			
 			sectorOffset += sectorsToRead;
-			sectorsRemaining -= sectorsToRead;
 		}
 #ifdef DEBUG_NOGBA
 		sprintf(buf, "read completed, read %ld sectors", sectorOffset);
