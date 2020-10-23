@@ -42,19 +42,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <nds/debug.h>
 #endif
 
-#define CHECK_BIT(v, n) (((v) >> (n)) & 1)
-#define VALID(v) CHECK_BIT(v, 0)
-#define REFERENCED(v) CHECK_BIT(v, 1)
-#define BIT_SET(n)   (1 << (n))
-
 #define CACHE_LINE_SIZE 32
 
 typedef struct cache_s
 {
     BYTE data[FF_MAX_SS] __attribute__((aligned(32)));
-    // Bit 0 is validity. If set to 1, then read will succeed.
-    // Bit 1 is reference. If set to 0, then on the next round robin, will be evicted.
-    BYTE status;
+    
+    // referential weight for GCLOCK
+    WORD weight;
+    // If >0, cached sector is valid, else invalid.
+    BYTE valid;
     BYTE pdrv;
     LBA_t sector;
     WORD __padding;
@@ -112,7 +109,7 @@ static inline int cache_find_valid_block(CACHE *cache, BYTE drv, LBA_t sector)
 
     for (int i = 0; i < _cacheSize; i++)
     {
-        if (VALID(cache[i].status) && cache[i].pdrv == drv && cache[i].sector == sector)
+        if (cache[i].valid && cache[i].pdrv == drv && cache[i].sector == sector)
         {
             return i;
         }
@@ -136,15 +133,15 @@ BOOL cache_load_sector(CACHE *cache, BYTE drv, LBA_t sector, BYTE *dst)
     // sprintf(block, "HIT: d: %d, s: %ld, b: %d", drv, sector, i);
     // nocashMessage(block);
 #endif
-    // Set referenced bit
-    cache[i].status |= 0b10;
+    // Increase weight
+    cache[i].weight += 1;
 
     // Copy cache
     tonccpy(dst, &cache[i].data, FF_MAX_SS);
     return true;
 }
 
-void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src)
+void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src, BYTE weight)
 {
     if (!cache || _cacheSize == 0)
         return;
@@ -156,14 +153,14 @@ void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src)
 
     while (free_block < 0)
     {
-        if (!REFERENCED(cache[_evictCounter].status))
+        if (!cache[_evictCounter].weight)
         {
             free_block = _evictCounter;
         }
         else
         {
-            // Clear reference bit
-            cache[_evictCounter].status &= ~BIT_SET(1);
+            // Decrement weight
+            cache[_evictCounter].weight -= 1;
         }
         _evictCounter = ((_evictCounter + 1) % _cacheSize);
     }
@@ -175,10 +172,11 @@ void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src)
 #endif
 
     // Set valid and unreferenced
-    cache[free_block].status = (BYTE)0b01;
+    cache[free_block].valid = 1;
     cache[free_block].pdrv = drv;
     cache[free_block].sector = sector;
-
+    cache[free_block].weight = weight;
+    
 #if SLIM_DMA_CACHE_STORE
 
     DC_FlushRange(src, FF_MAX_SS);
@@ -206,7 +204,7 @@ BOOL cache_invalidate_sector(CACHE *cache, BYTE drv, LBA_t sector)
     int i = -1;
     if ((i = cache_find_valid_block(cache, drv, sector)) != -1)
     {
-        cache[i].status = (BYTE)0b00;
+        cache[i].valid = 0;
         return true;
     }
 
@@ -219,7 +217,7 @@ void cache_invalidate_all(CACHE *cache, BYTE drv)
         return;
     for (UINT i = 0; i < _cacheSize; i++)
     {
-        cache[i].status = (BYTE)00;
+        cache[i].valid = 0;
     }
 }
 
@@ -233,7 +231,7 @@ BITMAP_PRIMITIVE cache_get_existence_bitmap(CACHE *cache, BYTE drv, LBA_t sector
     BITMAP_PRIMITIVE bitmap = 0;
     for (int i = 0; i < _cacheSize; i++)
     {
-        if (VALID(cache[i].status) && cache[i].pdrv == drv)
+        if (cache[i].valid && cache[i].pdrv == drv)
         {
             int cachedSector = cache[i].sector;
             int relativeSector = cachedSector - sector;

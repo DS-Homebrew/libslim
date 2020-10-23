@@ -95,6 +95,10 @@ BOOL cache_load_sector(CACHE *cache, BYTE drv, LBA_t sector, BYTE *dst);
  * Caches a full sector for the specified drive.
  * Previous cached data will be cleared before writing.
  * 
+ * Required is an input weight that determines how long the
+ * sector will stay cached. For sectors with high access times
+ * use a higher weight.
+ * 
  * Preconditions:
  *  - src is readable for exactly FF_MAX_SS bytes
  *    if this is not the case, bad things will happen.
@@ -102,7 +106,7 @@ BOOL cache_load_sector(CACHE *cache, BYTE drv, LBA_t sector, BYTE *dst);
  *  - if SLIM_DMA_CACHE_STORE is defined (default), src is cache (32-byte)-aligned
  *    and in EWRAM (DMA readable)
  */ 
-void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src);
+void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src, BYTE weight);
 
 /**
  * Invalidates the specified sector 
