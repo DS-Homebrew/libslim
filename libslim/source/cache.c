@@ -177,10 +177,9 @@ void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src, B
     cache[free_block].sector = sector;
     cache[free_block].weight = weight;
     
-#if SLIM_DMA_CACHE_STORE
-
     DC_FlushRange(src, FF_MAX_SS);
 
+#if SLIM_DMA_CACHE_STORE
     // Perform safe cache flush
     uint32_t dst = (uint32_t)&cache[free_block].data;
     if (dst % CACHE_LINE_SIZE)
