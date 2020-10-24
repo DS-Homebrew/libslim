@@ -119,7 +119,7 @@ Configures the use of the sector cache. This should be enabled for most use case
 
 **Default:** `64`
 
-Configures the size (in number of sectors) of the cache. By default, 64 sectors will be cached, if not otherwise set at runtime. The default cache size of 64 results in a total reserved space of 34.5KiB used for the cache.
+Configures the size (in number of sectors) of the cache. By default, 64 sectors will be cached, if not otherwise set at runtime. The default cache size of 64 results in a total reserved heap space of 34KiB used for the cache, and 512 bytes in `.bss` used as a working buffer.
 
 #### `SLIM_DMA_CACHE_STORE`
 
@@ -139,6 +139,15 @@ If caching is enabled, and `SLIM_CHUNKED_READS` is disabled, sectors will be rea
 If caching is enabled, and `SLIM_CHUNKED_READS` is enabled, cached sectors will first be read, then uncached sectors are 'greedily' read in chunks of up to 32 sectors per SD card request, and used to 'fill in the blanks', to minimize the number of SD card accesses while still accounting for cached sectors.
 
 If caching is disabled either in runtime or via `SLIM_USE_CACHE`, this has no effect, and libslim will always read the full number of requested sectors in a single request.
+
+#### `SLIM_PREFETCH_AMOUNT`
+
+**Default:** `1`
+
+Configures the number of sectors to prefetch on single-sector read requests. The goal is the minimize the number of
+SD card requests. Single sector reads often occur during initialization or directory read requests, and often require multiple blocks that may come in a separate read request. Increasing the amount of prefetched sectors may help with this.
+
+`.bss` RAM usage increases by a factor of `512 * SLIM_PREFETCH_AMOUNT`.
 
 ### Runtime Configuration API
 libslim provides a runtime configuration API that does not have an exact analogue in libfat.

@@ -62,6 +62,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SLIM_CHUNKED_READS 1
 
 /**
+ * This option configures the number of sectors prefetched 
+ * on single sector reads. 
+ * 
+ * This increases WRAM usage by a factor of SLIM_PREFETCH_AMOUNT * 512
+ * 
+ * 0 - Single sector reads read exactly one sector on a single sector read
+ * 1 - Single sector reads trigger a prefetch of 1 extra sector into the cache
+ */
+#define SLIM_PREFETCH_AMOUNT 1
+/**
  * **YOU SHOULD NOT NEED TO CHANGE THIS OPTION**
  * 
  * Specifies the primitive to use as a 

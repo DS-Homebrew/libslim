@@ -50,6 +50,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cache.h"
 
+#define DEBUG_NOGBA
+
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #define CHECK_BIT(v, n) (((v) >> (n)) & 1)
 #define BIT_SET(n) (1 << (n))
@@ -98,7 +100,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if SLIM_USE_CACHE
 static CACHE *__cache;
-static BYTE working_buf[FF_MAX_SS] __attribute__((aligned(32)));
+static BYTE working_buf[FF_MAX_SS * (SLIM_PREFETCH_AMOUNT + 1)] __attribute__((aligned(32)));
 
 #endif
 /*-----------------------------------------------------------------------*/
@@ -179,8 +181,8 @@ DRESULT disk_read(
 
 #ifdef DEBUG_NOGBA
 		char buf[256];
-		// sprintf(buf, "load: %d sectors from %ld, wbuf: %p, tbuf: %p", count, baseSector, working_buf, buff);
-		// nocashMessage(buf);
+		sprintf(buf, "load: %d sectors from %ld, wbuf: %p, tbuf: %p", count, baseSector, working_buf, buff);
+		nocashMessage(buf);
 #endif
 		// If caching is disabled, there's no reason to read each sector individually..,
 		if (!__cache)
@@ -213,6 +215,10 @@ DRESULT disk_read(
 		
 			if (cache_load_sector(__cache, drv, baseSector, buff))
 			{
+#ifdef DEBUG_NOGBA
+				sprintf(buf, "LC1: s: %ld", baseSector);
+				nocashMessage(buf);
+#endif
 				res = RES_OK;
 			}
 			else
@@ -220,10 +226,35 @@ DRESULT disk_read(
 				// This is a single sector read.
 				// Single sector reads are more likely to be reused 
 				// so we assign higher weights
-				res = disk_read_internal(drv, working_buf, baseSector, 1);
-				// single sector reads are more likely to be reused
-				cache_store_sector(__cache, drv, baseSector, working_buf, count > 1 ? 1 : 2);
-				tonccpy(buff, working_buf, FF_MAX_SS);
+				DRESULT prefetchOk = disk_read_internal(drv, working_buf, baseSector, 1 + SLIM_PREFETCH_AMOUNT);
+				
+				if (prefetchOk == RES_OK) 
+				{
+#ifdef DEBUG_NOGBA
+					sprintf(buf, "LU1: s: %ld, n: %d", baseSector, SLIM_PREFETCH_AMOUNT + 1);
+					nocashMessage(buf);
+#endif
+					// single sector reads are more likely to be reused
+					cache_store_sector(__cache, drv, baseSector, working_buf, 2);
+					tonccpy(buff, working_buf, FF_MAX_SS);
+
+					for (int i = 1; i <= SLIM_PREFETCH_AMOUNT; i++) {
+						// prefetch sectors, insert into cache with weight 1
+						cache_store_sector(__cache, drv, baseSector + i, &working_buf[FF_MAX_SS * i], 1);
+					}
+					res = prefetchOk;
+				}
+				else
+				{
+					res = disk_read_internal(drv, working_buf, baseSector, 1);
+					cache_store_sector(__cache, drv, baseSector, working_buf, 2);
+					tonccpy(buff, working_buf, FF_MAX_SS);
+#ifdef DEBUG_NOGBA
+					sprintf(buf, "LU1: s: %ld, n: %d, failed prefetch", baseSector, 1);
+					nocashMessage(buf);
+#endif
+				}
+				
 			}
 			return res;
 		}
