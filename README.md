@@ -111,10 +111,15 @@ libslim uses a comparatively more lightweight GCLOCK-based cache with many confi
 
 #### `SLIM_USE_CACHE`
 
-**Default:** `1` (Enabled)
+**Default:** `1` (Enabled, with prefetch buffer in heap memory)
 
-Configures the use of the sector cache. This should be enabled for most use cases. If you decide not to use the cache, the recommended route is to use runtime cache configuration instead of disabling the cache through this define. The cache uses `512 + (CACHE_SIZE * 544)`  bytes of memory, heap allocated on first mount.
+Configures the use of the sector cache. This should be enabled for most use cases. If you decide not to use the cache, the recommended route is to use runtime cache configuration instead of disabling the cache through this define. The cache uses `(512 * SLIM_PREFETCH_AMOUNT) + (CACHE_SIZE * 544)`  bytes of memory, heap allocated on first mount.
 
+
+* Setting to `0` will disable the cache.
+* Setting to `1` will enable the cache in heap memory, with the prefetch buffer in heap memory.
+* Setting to `2` will enable the cache in heap memory, with the prefetch buffer in `.bss`. 
+  
 #### `SLIM_CACHE_SIZE`
 
 **Default:** `64`

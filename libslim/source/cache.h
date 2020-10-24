@@ -33,7 +33,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * This option defines how the cache will be implemented
  * 
  * 0 - Cache is disabled
- * 1 - Cache on heap memory is used
+ * 1 - Cache in heap memory is used, with working buffer in heap memory
+ * 2 - Cache in heap memory is used, with working buffer in .bss
  * 
  */
 #define SLIM_USE_CACHE 1

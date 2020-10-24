@@ -100,8 +100,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if SLIM_USE_CACHE
 static CACHE *__cache;
-static BYTE working_buf[FF_MAX_SS * (SLIM_PREFETCH_AMOUNT + 1)] __attribute__((aligned(32)));
-
+#endif
+#if SLIM_USE_CACHE == 1
+static BYTE *working_buf;
+#elif SLIM_USE_CACHE == 2
+static BYTE working_buf[FF_MAX_SS * (SLIM_PREFETCH_AMOUNT + 1)];
 #endif
 /*-----------------------------------------------------------------------*/
 /* Initialize a Drive                                                    */
@@ -113,6 +116,13 @@ DSTATUS disk_initialize(BYTE drv)
 	if (!__cache)
 	{
 		__cache = cache_init(SLIM_CACHE_SIZE);
+	}
+#endif
+
+#if SLIM_USE_CACHE == 1
+	if (!working_buf)
+	{
+		working_buf = ff_memalloc(sizeof(BYTE) * FF_MAX_SS * (SLIM_PREFETCH_AMOUNT + 1));
 	}
 #endif
 
