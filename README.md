@@ -126,12 +126,15 @@ Configures the use of the sector cache. This should be enabled for most use case
 
 Configures the size (in number of sectors) of the cache. By default, 64 sectors will be cached, if not otherwise set at runtime. The default cache size of 64 results in a total reserved heap space of 34KiB used for the cache, and 512 bytes in `.bss` used as a working buffer.
 
-#### `SLIM_DMA_CACHE_STORE`
+#### `SLIM_CACHE_STORE_CPY`
 
-**Default:** `0` (Disabled)
+**Default:** `2` (BIOS copy)
 
-Configures whether or not to use DMA copies to write to the cache. May result in a speedup if you need frequent streaming
-disk access, but is not generally needed, and may cause issues with IRQ sensitive code.
+Configures the method to use to copy sectors to the cache. 
+
+* Setting to `0` will use a CPU memcpy.
+* Setting to `1` will use DMA copies.
+* Setting to `2` will use the `swiCopy` BIOS copy
 
 #### `SLIM_CHUNKED_READS`
 

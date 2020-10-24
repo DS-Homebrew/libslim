@@ -50,9 +50,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * 0 - Uses a CPU memcpy to store sectors
  * 1 - Uses DMA to store sectors
- *
+ * 2 - Uses swiCopy to store sectors
  */
-#define SLIM_DMA_CACHE_STORE 0
+#define SLIM_CACHE_STORE_CPY 2
 
 /**
  * This option configures how to read sectors

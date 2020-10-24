@@ -43,6 +43,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <nds/debug.h>
 #endif
 
+#if SLIM_CACHE_STORE_CPY == 2
+#include <nds/bios.h>
+#endif
+
 #define CACHE_LINE_SIZE 32
 #define BIT_SET(n) (1 << (n))
 
@@ -178,7 +182,7 @@ void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src, B
     cache[free_block].sector = sector;
     cache[free_block].weight = weight;
     
-#if SLIM_DMA_CACHE_STORE
+#if SLIM_CACHE_STORE_CPY == 1
     DC_FlushRange(src, FF_MAX_SS);
     // Perform safe cache flush
     uint32_t dst = (uint32_t)&cache[free_block].data;
@@ -189,7 +193,8 @@ void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src, B
 
     dmaCopyWords(3, src, &cache[free_block].data, FF_MAX_SS);
     DC_InvalidateRange(&cache[free_block].data, FF_MAX_SS);
-
+#elif SLIM_CACHE_STORE_CPY == 2
+    swiCopy(src, &cache[free_block].data, (FF_MAX_SS >> 2) | COPY_MODE_COPY | COPY_MODE_WORD);
 #else
     MEMCOPY(&cache[free_block].data, src, FF_MAX_SS);
 #endif
