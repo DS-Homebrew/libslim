@@ -72,12 +72,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 1 - Single sector reads trigger a prefetch of 1 extra sector into the cache
  */
 #define SLIM_PREFETCH_AMOUNT 1
+
 /**
  * **YOU SHOULD NOT NEED TO CHANGE THIS OPTION**
  * 
- * Specifies the primitive to use as a 
+ * Specifies the primitive to use as a bitmap. 
+ * Changes the size of the chunk used.
+ * 
+ * The default DSi SD driver included in libnds can not
+ * handle much more than 8 sectors per read, 
+ * and therefore changing this from BYTE may have
+ * uninteded consequences.
  */
-#define BITMAP_PRIMITIVE DWORD
+#define BITMAP_PRIMITIVE BYTE
 
 #define SECTORS_PER_CHUNK (sizeof(BITMAP_PRIMITIVE) * CHAR_BIT)
 
