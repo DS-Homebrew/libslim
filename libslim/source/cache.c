@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cache.h"
 #include <ctype.h>
 #include "tonccpy.h"
+#include "memcopy.h"
 
 #include "ff.h"
 
@@ -96,7 +97,7 @@ CACHE *cache_init(UINT cacheSize)
         __cache = allocedCache;
     }
 
-    toncset(__cache, 0, sizeof(CACHE) * cacheSize);
+    MEMCLR(__cache, sizeof(CACHE) * cacheSize);
     return __cache;
 }
 
@@ -137,7 +138,7 @@ BOOL cache_load_sector(CACHE *cache, BYTE drv, LBA_t sector, BYTE *dst)
     cache[i].weight += 1;
 
     // Copy cache
-    tonccpy(dst, &cache[i].data, FF_MAX_SS);
+    MEMCOPY(dst, &cache[i].data, FF_MAX_SS);
     return true;
 }
 
@@ -177,9 +178,8 @@ void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src, B
     cache[free_block].sector = sector;
     cache[free_block].weight = weight;
     
-    DC_FlushRange(src, FF_MAX_SS);
-
 #if SLIM_DMA_CACHE_STORE
+    DC_FlushRange(src, FF_MAX_SS);
     // Perform safe cache flush
     uint32_t dst = (uint32_t)&cache[free_block].data;
     if (dst % CACHE_LINE_SIZE)
@@ -191,7 +191,7 @@ void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src, B
     DC_InvalidateRange(&cache[free_block].data, FF_MAX_SS);
 
 #else
-    tonccpy(&cache[free_block].data, src, FF_MAX_SS);
+    MEMCOPY(&cache[free_block].data, src, FF_MAX_SS);
 #endif
 }
 
@@ -232,8 +232,7 @@ BITMAP_PRIMITIVE cache_get_existence_bitmap(CACHE *cache, BYTE drv, LBA_t sector
     {
         if (cache[i].valid && cache[i].pdrv == drv)
         {
-            int cachedSector = cache[i].sector;
-            int relativeSector = cachedSector - sector;
+            LBA_t relativeSector = cache[i].sector - sector;
             if (relativeSector < 0 || relativeSector >= count)
                 continue;
             bitmap |= BIT_SET(relativeSector);

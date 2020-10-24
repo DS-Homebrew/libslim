@@ -33,7 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <wctype.h>
 
-static TCHAR CvtBuf[FF_MAX_LFN + 1] __attribute__((aligned(4)));
+static TCHAR CvtBuf[FF_MAX_LFN + 1] __attribute__((aligned(32)));
 
 TCHAR *mbstoucs2(const char *src, size_t *len)
 {

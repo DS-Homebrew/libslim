@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ff.h"
 #include "ffvolumes.h"
 #include "tonccpy.h"
+#include "memcopy.h"
 
 #include "diskio.h"
 #include <stdio.h>
@@ -210,7 +211,7 @@ DRESULT disk_read(
 				res = disk_read_internal(drv, working_buf, baseSector + i, 1);
 				// single sector reads are more likely to be reused
 				cache_store_sector(__cache, drv, baseSector + i, working_buf, count > 1 ? 1 : 2);
-				tonccpy(&buff[i * FF_MAX_SS], working_buf, FF_MAX_SS);
+				MEMCOPY(&buff[i * FF_MAX_SS], working_buf, FF_MAX_SS);
 			}
 		}
 
@@ -243,7 +244,7 @@ DRESULT disk_read(
 #endif
 					// single sector reads are more likely to be reused
 					cache_store_sector(__cache, drv, baseSector, working_buf, 2);
-					tonccpy(buff, working_buf, FF_MAX_SS);
+					MEMCOPY(buff, working_buf, FF_MAX_SS);
 
 					for (int i = 1; i <= SLIM_PREFETCH_AMOUNT; i++) {
 						// prefetch sectors, insert into cache with weight 1
@@ -255,7 +256,7 @@ DRESULT disk_read(
 				{
 					res = disk_read_internal(drv, working_buf, baseSector, 1);
 					cache_store_sector(__cache, drv, baseSector, working_buf, 2);
-					tonccpy(buff, working_buf, FF_MAX_SS);
+					MEMCOPY(buff, working_buf, FF_MAX_SS);
 #ifdef DEBUG_NOGBA
 					sprintf(buf, "LU1: s: %ld, n: %d, failed prefetch", baseSector, 1);
 					nocashMessage(buf);
@@ -349,7 +350,7 @@ DRESULT disk_read(
 				for (int j = 0; j < lookaheadCount; j++)
 				{
 					readBitmap |= BIT_SET((i + j));
-					tonccpy(working_buf, &buff[(i + j + sectorOffset) * FF_MAX_SS], FF_MAX_SS);
+					MEMCOPY(working_buf, &buff[(i + j + sectorOffset) * FF_MAX_SS], FF_MAX_SS);
 					cache_store_sector(__cache, drv, baseSector + sectorOffset + i + j, working_buf, 1);
 				}
 

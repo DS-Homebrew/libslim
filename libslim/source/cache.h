@@ -79,7 +79,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * Must be 1 < SLIM_SECTORS_PER_CHUNK <= (sizeof(BITMAP_PRIMITIVE) * CHAR_BIT) 
  */ 
-#define SLIM_SECTORS_PER_CHUNK 6
+#define SLIM_SECTORS_PER_CHUNK 12
 
 /**
  * **YOU SHOULD NOT NEED TO CHANGE THIS OPTION**
@@ -92,7 +92,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * and therefore changing this from BYTE may have
  * uninteded consequences.
  */
-#define BITMAP_PRIMITIVE BYTE
+#define BITMAP_PRIMITIVE WORD
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
