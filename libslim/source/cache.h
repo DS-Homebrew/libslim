@@ -37,7 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 2 - Cache in heap memory is used, with working buffer in .bss
  * 
  */
-#define SLIM_USE_CACHE 1
+#define SLIM_USE_CACHE 2
 
 
 /**
@@ -69,9 +69,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * This increases WRAM usage by a factor of SLIM_PREFETCH_AMOUNT * 512
  * 
  * 0 - Single sector reads read exactly one sector on a single sector read
- * 1 - Single sector reads trigger a prefetch of 1 extra sector into the cache
+ * > 1 - Single sector reads trigger a prefetch of SLIM_PREFETCH_AMOUNT extra sectors into the cache
  */
 #define SLIM_PREFETCH_AMOUNT 1
+
+/**
+ * This configures the max number of sectors fetched from the SD card per chunk.
+ * If this is 0, then defaults to (sizeof(BITMAP_PRIMITIVE) 
+ * 
+ * Must be 1 < SLIM_SECTORS_PER_CHUNK <= (sizeof(BITMAP_PRIMITIVE) * CHAR_BIT) 
+ */ 
+#define SLIM_SECTORS_PER_CHUNK 6
 
 /**
  * **YOU SHOULD NOT NEED TO CHANGE THIS OPTION**
@@ -86,7 +94,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define BITMAP_PRIMITIVE BYTE
 
-#define SECTORS_PER_CHUNK (sizeof(BITMAP_PRIMITIVE) * CHAR_BIT)
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
+#define SECTORS_PER_CHUNK MAX(1, MIN(SLIM_SECTORS_PER_CHUNK, MAX_SECTORS_PER_CHUNK))
+
+#define MAX_SECTORS_PER_CHUNK (sizeof(BITMAP_PRIMITIVE) * CHAR_BIT)
 
 #if SLIM_USE_CACHE && FF_MAX_SS != FF_MIN_SS
     #error "Cache can only be used for fixed sector size."

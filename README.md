@@ -111,7 +111,7 @@ libslim uses a comparatively more lightweight GCLOCK-based cache with many confi
 
 #### `SLIM_USE_CACHE`
 
-**Default:** `1` (Enabled, with prefetch buffer in heap memory)
+**Default:** `2` (Enabled, with prefetch buffer in `.bss`)
 
 Configures the use of the sector cache. This should be enabled for most use cases. If you decide not to use the cache, the recommended route is to use runtime cache configuration instead of disabling the cache through this define. The cache uses `(512 * SLIM_PREFETCH_AMOUNT) + (CACHE_SIZE * 544)`  bytes of memory, heap allocated on first mount.
 
@@ -137,22 +137,28 @@ disk access, but is not generally needed, and may cause issues with IRQ sensitiv
 
 **Default:** `1` (Enabled)
 
-Configures whether or not libslim will maximize the size of SD card reads when caching is enabled. 
+Configures whether or not libslim will try to maximize the size of IO driver reads when caching is enabled. 
 
 If caching is enabled, and `SLIM_CHUNKED_READS` is disabled, sectors will be read one-by-one from the SD card using a separate request for each sector. This could result in degraded performance, but will take up a smaller code space. 
 
-If caching is enabled, and `SLIM_CHUNKED_READS` is enabled, cached sectors will first be read, then uncached sectors are 'greedily' read in chunks of up to 32 sectors per SD card request, and used to 'fill in the blanks', to minimize the number of SD card accesses while still accounting for cached sectors.
+If caching is enabled, and `SLIM_CHUNKED_READS` is enabled, cached sectors will first be read, then uncached sectors are 'greedily' read in chunks of up to 32 sectors per IO request, and used to 'fill in the blanks', to minimize the number of IO driver accesses while still accounting for cached sectors.
 
 If caching is disabled either in runtime or via `SLIM_USE_CACHE`, this has no effect, and libslim will always read the full number of requested sectors in a single request.
 
 #### `SLIM_PREFETCH_AMOUNT`
 
-**Default:** `1`
+**Default:** `0`
 
 Configures the number of sectors to prefetch on single-sector read requests. The goal is the minimize the number of
 SD card requests. Single sector reads often occur during initialization or directory read requests, and often require multiple blocks that may come in a separate read request. Increasing the amount of prefetched sectors may help with this.
 
 `.bss` RAM usage increases by a factor of `512 * SLIM_PREFETCH_AMOUNT`.
+
+#### `SLIM_SECTORS_PER_CHUNK`
+
+**Default:** `4`
+Configures the maximum number of sectors to load from the IO driver in a single request if `SLIM_CHUNKED_READS` is on.
+
 
 ### Runtime Configuration API
 libslim provides a runtime configuration API that does not have an exact analogue in libfat.

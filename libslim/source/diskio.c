@@ -50,7 +50,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cache.h"
 
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #define CHECK_BIT(v, n) (((v) >> (n)) & 1)
 #define BIT_SET(n) (1 << (n))
 
