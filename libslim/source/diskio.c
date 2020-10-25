@@ -55,19 +55,25 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CHECK_BIT(v, n) (((v) >> (n)) & 1)
 #define BIT_SET(n) (1 << (n))
 
-#define CTZL(b) _Generic((b), \
-	unsigned long long: __builtin_ctzll, \
-		 unsigned long: __builtin_ctzl, \
-		  unsigned int: __builtin_ctz, \
-		  	   default: __builtin_ctz \
-)(b)
+#define CTZL(b) _Generic((b),               \
+						 unsigned long long \
+						 : __builtin_ctzll, \
+						   unsigned long    \
+						 : __builtin_ctzl,  \
+						   unsigned int     \
+						 : __builtin_ctz,   \
+						   default          \
+						 : __builtin_ctz)(b)
 
-#define POPCNT(b) _Generic((b), \
-	unsigned long long: __builtin_popcountll, \
-		 unsigned long: __builtin_popcountl, \
-		  unsigned int: __builtin_popcount, \
-		  	   default: __builtin_popcount \
-)(b)
+#define POPCNT(b) _Generic((b),                    \
+						   unsigned long long      \
+						   : __builtin_popcountll, \
+							 unsigned long         \
+						   : __builtin_popcountl,  \
+							 unsigned int          \
+						   : __builtin_popcount,   \
+							 default               \
+						   : __builtin_popcount)(b)
 
 #ifdef DEBUG_NOGBA
 #include <nds/debug.h>
@@ -222,50 +228,46 @@ DRESULT disk_read(
 		// If we're only loading one sector, no need to engage more complicated searches
 		if (count == 1)
 		{
-		
+
 			if (cache_load_sector(__cache, drv, baseSector, buff))
 			{
 #ifdef DEBUG_NOGBA
 				sprintf(buf, "LC1: s: %ld", baseSector);
 				nocashMessage(buf);
 #endif
-				res = RES_OK;
+				return RES_OK;
 			}
-			else
-			{
-				// This is a single sector read.
-				// Single sector reads are more likely to be reused 
-				// so we assign higher weights
-				DRESULT prefetchOk = disk_read_internal(drv, working_buf, baseSector, 1 + SLIM_PREFETCH_AMOUNT);
-				
-				if (prefetchOk == RES_OK) 
-				{
-#ifdef DEBUG_NOGBA
-					sprintf(buf, "LU1: s: %ld, n: %d", baseSector, SLIM_PREFETCH_AMOUNT + 1);
-					nocashMessage(buf);
-#endif
-					// single sector reads are more likely to be reused
-					cache_store_sector(__cache, drv, baseSector, working_buf, 2);
-					MEMCOPY(buff, working_buf, FF_MAX_SS);
 
-					for (int i = 1; i <= SLIM_PREFETCH_AMOUNT; i++) {
-						// prefetch sectors, insert into cache with weight 1
-						cache_store_sector(__cache, drv, baseSector + i, &working_buf[FF_MAX_SS * i], 1);
-					}
-					res = prefetchOk;
-				}
-				else
-				{
-					res = disk_read_internal(drv, working_buf, baseSector, 1);
-					cache_store_sector(__cache, drv, baseSector, working_buf, 2);
-					MEMCOPY(buff, working_buf, FF_MAX_SS);
+			// This is a single sector read.
+			// Single sector reads are more likely to be reused
+			// so we assign higher weights
+			DRESULT prefetchOk = disk_read_internal(drv, working_buf, baseSector, 1 + SLIM_PREFETCH_AMOUNT);
+
+			if (prefetchOk == RES_OK)
+			{
 #ifdef DEBUG_NOGBA
-					sprintf(buf, "LU1: s: %ld, n: %d, failed prefetch", baseSector, 1);
-					nocashMessage(buf);
+				sprintf(buf, "LU1: s: %ld, n: %d", baseSector, SLIM_PREFETCH_AMOUNT + 1);
+				nocashMessage(buf);
 #endif
+				// single sector reads are more likely to be reused
+				cache_store_sector(__cache, drv, baseSector, working_buf, 2);
+				MEMCOPY(buff, working_buf, FF_MAX_SS);
+
+				for (BYTE i = 1; i <= SLIM_PREFETCH_AMOUNT; i++)
+				{
+					// prefetch sectors, insert into cache with weight 1
+					cache_store_sector(__cache, drv, baseSector + i, &working_buf[FF_MAX_SS * i], 1);
 				}
-				
+				return RES_OK;
 			}
+
+			res = disk_read_internal(drv, working_buf, baseSector, 1);
+			cache_store_sector(__cache, drv, baseSector, working_buf, 2);
+			MEMCOPY(buff, working_buf, FF_MAX_SS);
+#ifdef DEBUG_NOGBA
+			sprintf(buf, "LU1: s: %ld, n: %d, failed prefetch", baseSector, 1);
+			nocashMessage(buf);
+#endif
 			return res;
 		}
 
@@ -340,7 +342,8 @@ DRESULT disk_read(
 
 				res = disk_read_internal(drv, working_buf, baseSector + sectorOffset + i, lookaheadCount);
 
-				if (res != RES_OK) {
+				if (res != RES_OK)
+				{
 #ifdef DEBUG_NOGBA
 					sprintf(buf, "FL: sO: %ld, i: %ld, n: %d", sectorOffset, i, lookaheadCount);
 					nocashMessage(buf);
@@ -362,20 +365,19 @@ DRESULT disk_read(
 
 			// If the number of read sectors in the chunk is wrong
 			// we messed up.
-			if (POPCNT(readBitmap) != sectorsToRead) 
+			if (POPCNT(readBitmap) != sectorsToRead)
 			{
 #ifdef DEBUG_NOGBA
-				sprintf(buf, "Error: read count mismatch, expected %d, actual %d, s0: %ld, sR: %ld", 
-					sectorsToRead, 
-					POPCNT(readBitmap),
-					sectorOffset,
-					count - sectorOffset
-					);
+				sprintf(buf, "Error: read count mismatch, expected %d, actual %d, s0: %ld, sR: %ld",
+						sectorsToRead,
+						POPCNT(readBitmap),
+						sectorOffset,
+						count - sectorOffset);
 				nocashMessage(buf);
 #endif
 				return RES_ERROR;
 			}
-			
+
 			sectorOffset += sectorsToRead;
 		}
 #ifdef DEBUG_NOGBA
@@ -427,7 +429,8 @@ DRESULT disk_ioctl(
 	const DISC_INTERFACE *disc_io = NULL;
 	if ((disc_io = get_disc_io(drv)) != NULL)
 	{
-		if (ctrl == CTRL_SYNC) {
+		if (ctrl == CTRL_SYNC)
+		{
 			return disc_io->clearStatus() ? RES_OK : RES_ERROR;
 		}
 		return RES_OK;
