@@ -55,6 +55,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <nds/system.h>
 #endif
 
+#if SLIM_USE_CACHE
+
 #define CACHE_LINE_SIZE 32
 #define BIT_SET(n) (1 << (n))
 
@@ -298,3 +300,4 @@ BITMAP_PRIMITIVE cache_get_existence_bitmap(CACHE *cache, BYTE drv, LBA_t sector
     }
     return bitmap;
 }
+#endif

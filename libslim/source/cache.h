@@ -60,7 +60,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 0 - Sectors are read 1 by 1 from the SD card
  * 1 - Sectors are read in chunks, greedily from SD card
  */
-#define SLIM_CHUNKED_READS 1
+#define SLIM_CHUNKED_READS 0
 
 /**
  * This option configures the number of sectors prefetched 

@@ -186,7 +186,7 @@ DRESULT disk_read(
 	if (VALID_DISK(drv))
 	{
 #if !SLIM_USE_CACHE
-		return disk_read_internal(drv, buff, sector, count);
+		return disk_read_internal(drv, buff, baseSector, count);
 #else
 
 #ifdef DEBUG_NOGBA
