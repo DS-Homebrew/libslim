@@ -50,7 +50,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * 0 - Uses a CPU memcpy to store sectors
  * 1 - Uses DMA to store sectors
- * 2 - Uses swiCopy to store sectors
+ * 2 - Uses NDMA to store sectors, on DSi, using CPU memcpy otherwise.
  */
 #define SLIM_CACHE_STORE_CPY 2
 
@@ -79,25 +79,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * Must be 1 < SLIM_SECTORS_PER_CHUNK <= (sizeof(BITMAP_PRIMITIVE) * CHAR_BIT) 
  */ 
-#define SLIM_SECTORS_PER_CHUNK 12
+#define SLIM_SECTORS_PER_CHUNK 8
 
 /**
  * **YOU SHOULD NOT NEED TO CHANGE THIS OPTION**
  * 
  * Specifies the primitive to use as a bitmap. 
  * Changes the size of the chunk used.
- * 
- * The default DSi SD driver included in libnds can not
- * handle much more than 8 sectors per read, 
- * and therefore changing this from BYTE may have
- * uninteded consequences.
  */
-#define BITMAP_PRIMITIVE WORD
+#define BITMAP_PRIMITIVE BYTE
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
+#if !SLIM_SECTORS_PER_CHUNK
+#define SECTORS_PER_CHUNK MAX_SECTORS_PER_CHUNK
+#else
 #define SECTORS_PER_CHUNK MAX(1, MIN(SLIM_SECTORS_PER_CHUNK, MAX_SECTORS_PER_CHUNK))
+#endif
 
 #define MAX_SECTORS_PER_CHUNK (sizeof(BITMAP_PRIMITIVE) * CHAR_BIT)
 
@@ -162,11 +161,6 @@ void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src, B
  * Returns true if the sector was previously cached and is now invalidated, false otherwise.
  */ 
 BOOL cache_invalidate_sector(CACHE *cache, BYTE drv, LBA_t sector);
-
-/**
- * Invalidates all sectors cached for the given drive.
- */ 
-void cache_invalidate_all(CACHE *cache, BYTE drv);
 
 /**
  * Gets the existence of up to count < sizeof(BITMAP_PRIMITIVE) * CHAR_BIT 
