@@ -52,6 +52,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cache.h"
 
+#define DEBUG_NOGBA
+
 #define CHECK_BIT(v, n) (((v) >> (n)) & 1)
 #define BIT_SET(n) (1 << (n))
 
@@ -295,23 +297,13 @@ DRESULT disk_read(
 					sectorOffset, count, baseSector + sectorOffset);
 			nocashMessage(buf);
 #endif
-			// Get bitmap of cached sectors
-			// bitmap is rooted at sectorOffset
-			const BITMAP_PRIMITIVE cacheBitmap = cache_get_existence_bitmap(__cache, drv, baseSector + sectorOffset, sectorsToRead);
-			BITMAP_PRIMITIVE readBitmap = 0;
-
-#ifdef DEBUG_NOGBA
-			sprintf(buf, "chunk %ld..=%ld (%d): " PRINTF_BINARY_PATTERN_INT32,
-					sectorOffset, sectorsToRead + sectorOffset, cacheBitmap, PRINTF_BYTE_TO_BINARY_INT32(cacheBitmap));
-			nocashMessage(buf);
-#endif
 			BYTE chunkOffset = 0;
-			while (cache_load_sector(__cache, drv, baseSector + chunkOffset + sectorOffset,
+			while (chunkOffset < sectorsToRead && cache_load_sector(__cache, drv, baseSector + chunkOffset + sectorOffset,
 									 &buff[(chunkOffset + sectorOffset) * FF_MAX_SS]))
 			{
 
 #ifdef DEBUG_NOGBA
-				sprintf(buf, "LC: sO: %ld, i: %ld", sectorOffset, i);
+				sprintf(buf, "LC: sO: %ld, i: %d", sectorOffset, chunkOffset);
 				nocashMessage(buf);
 #endif
 				chunkOffset++;
@@ -328,7 +320,7 @@ DRESULT disk_read(
 			if (res != RES_OK)
 			{
 #ifdef DEBUG_NOGBA
-				sprintf(buf, "FL: sO: %ld, i: %ld, n: %d", sectorOffset, i, lookaheadCount);
+				sprintf(buf, "FL: sO: %ld, i: %d, n: %d", sectorOffset, chunkOffset, sectorsToRead - chunkOffset);
 				nocashMessage(buf);
 #endif
 				return res;
