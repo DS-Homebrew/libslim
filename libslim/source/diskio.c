@@ -48,8 +48,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <nds/disc_io.h>
 #include <nds/arm9/cache.h>
+#include <nds/interrupts.h>
 
 #include "cache.h"
+
+#define DEBUG_NOGBA
 
 #define CHECK_BIT(v, n) (((v) >> (n)) & 1)
 #define BIT_SET(n) (1 << (n))
@@ -102,7 +105,7 @@ static CACHE *__cache;
 #if SLIM_USE_CACHE == 1
 static BYTE *working_buf;
 #elif SLIM_USE_CACHE == 2
-static BYTE working_buf[FF_MAX_SS * (SLIM_PREFETCH_AMOUNT + 1)];
+static BYTE working_buf[FF_MAX_SS * SECTORS_PER_CHUNK];
 #endif
 /*-----------------------------------------------------------------------*/
 /* Initialize a Drive                                                    */
@@ -120,7 +123,7 @@ DSTATUS disk_initialize(BYTE drv)
 #if SLIM_USE_CACHE == 1
 	if (!working_buf)
 	{
-		working_buf = ff_memalloc(sizeof(BYTE) * FF_MAX_SS * (SLIM_PREFETCH_AMOUNT + 1));
+		working_buf = ff_memalloc(sizeof(BYTE) * FF_MAX_SS * SECTORS_PER_CHUNK);
 	}
 #endif
 
@@ -160,7 +163,8 @@ static inline DRESULT disk_read_internal(
 	const DISC_INTERFACE *disc_io = NULL;
 	if ((disc_io = get_disc_io(drv)) != NULL)
 	{
-		return disc_io->readSectors(sector, count, buff) ? RES_OK : RES_ERROR;
+		DRESULT res = disc_io->readSectors(sector, count, buff) ? RES_OK : RES_ERROR;
+		return res;
 	}
 	return RES_PARERR;
 }
@@ -285,7 +289,7 @@ DRESULT disk_read(
 			BITMAP_PRIMITIVE readBitmap = 0;
 
 #ifdef DEBUG_NOGBA
-			sprintf(buf, "chunk %ld..=%ld (%ld): " PRINTF_BINARY_PATTERN_INT32,
+			sprintf(buf, "chunk %ld..=%ld (%d): " PRINTF_BINARY_PATTERN_INT32,
 					sectorOffset, sectorsToRead + sectorOffset, cacheBitmap, PRINTF_BYTE_TO_BINARY_INT32(cacheBitmap));
 			nocashMessage(buf);
 #endif
@@ -335,8 +339,8 @@ DRESULT disk_read(
 				sprintf(buf, "LU: sO: %ld, i: %ld, n: %d", sectorOffset, i, lookaheadCount);
 				nocashMessage(buf);
 #endif
-				res = disk_read_internal(drv, &buff[(i + sectorOffset) * FF_MAX_SS],
-										 baseSector + sectorOffset + i, lookaheadCount);
+
+				res = disk_read_internal(drv, working_buf, baseSector + sectorOffset + i, lookaheadCount);
 
 				if (res != RES_OK) {
 #ifdef DEBUG_NOGBA
@@ -346,12 +350,13 @@ DRESULT disk_read(
 					return res;
 				}
 
+				MEMCOPY(&buff[(i + sectorOffset) * FF_MAX_SS], working_buf, lookaheadCount * FF_MAX_SS);
+
 				// Cache read sectors
 				for (int j = 0; j < lookaheadCount; j++)
 				{
 					readBitmap |= BIT_SET((i + j));
-					MEMCOPY(working_buf, &buff[(i + j + sectorOffset) * FF_MAX_SS], FF_MAX_SS);
-					cache_store_sector(__cache, drv, baseSector + sectorOffset + i + j, working_buf, 1);
+					cache_store_sector(__cache, drv, baseSector + sectorOffset + i + j, &working_buf[j * FF_MAX_SS], 1);
 				}
 
 				i += lookaheadCount;
