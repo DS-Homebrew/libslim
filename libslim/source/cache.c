@@ -188,7 +188,7 @@ void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src, B
 
     while (free_block < 0)
     {
-        if (!cache[_evictCounter].weight)
+        if (!cache[_evictCounter].valid || !cache[_evictCounter].weight)
         {
             free_block = _evictCounter;
         }

@@ -39,7 +39,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define SLIM_USE_CACHE 1
 
-
 /**
  * This option defines the default cache size in number of sectors
  */
@@ -60,7 +59,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 0 - Sectors are read 1 by 1 from the SD card
  * 1 - Sectors are read in chunks, greedily from SD card
  */
-#define SLIM_CHUNKED_READS 1
+#define SLIM_CHUNKED_READS 0
 
 /**
  * This option configures the number of sectors prefetched 
@@ -71,7 +70,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 0 - Single sector reads read exactly one sector on a single sector read
  * > 1 - Single sector reads trigger a prefetch of SLIM_PREFETCH_AMOUNT extra sectors into the cache
  */
-#define SLIM_PREFETCH_AMOUNT 1
+#define SLIM_PREFETCH_AMOUNT 0
 
 /**
  * This configures the max number of sectors fetched from the SD card per chunk.
@@ -79,7 +78,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * Must be 1 < SLIM_SECTORS_PER_CHUNK <= (sizeof(BITMAP_PRIMITIVE) * CHAR_BIT) 
  */ 
-#define SLIM_SECTORS_PER_CHUNK 4
+#define SLIM_SECTORS_PER_CHUNK 0
 
 /**
  * **YOU SHOULD NOT NEED TO CHANGE THIS OPTION**
