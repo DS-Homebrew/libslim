@@ -175,9 +175,21 @@ static inline DRESULT disk_read_internal(
 
 static inline BYTE get_disk_lookahead(DWORD bitmap, BYTE currentSector, BYTE maxCount)
 {
-	if ((bitmap >> currentSector) == 0)
-		return maxCount;
-	return MIN(maxCount, CTZL(bitmap >> currentSector));
+	BYTE sectorsToRead = 0;	
+	for (BYTE i = 0; i < maxCount; i++)	
+	{	
+		if (CHECK_BIT(bitmap, currentSector + i))	
+		{	
+			// reached a cache sector	
+			break;	
+		}	
+		sectorsToRead++;	
+	}	
+	return sectorsToRead;
+
+	// if ((bitmap >> currentSector) == 0)
+	// 	return maxCount;
+	// return MIN(maxCount, CTZL(bitmap >> currentSector));
 }
 
 DRESULT disk_read(
