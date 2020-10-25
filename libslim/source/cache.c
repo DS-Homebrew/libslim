@@ -58,6 +58,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CACHE_LINE_SIZE 32
 #define BIT_SET(n) (1 << (n))
 
+#ifdef DTCM_CACHEINFO
 #define DTCM_CACHEINFO_MAX SLIM_CACHE_SIZE
 
 typedef struct cacheinfo_s
@@ -67,6 +68,9 @@ typedef struct cacheinfo_s
     BYTE pdrv;
     LBA_t sector;
 } CACHEINFO;
+
+static DTCM_DATA CACHEINFO _cacheInfo[DTCM_CACHEINFO_MAX];
+#endif
 
 typedef struct cache_s
 {
@@ -81,7 +85,6 @@ typedef struct cache_s
 } __attribute__((aligned(32))) CACHE;
 
 static DTCM_DATA int _evictCounter = 0;
-static DTCM_DATA CACHEINFO _cacheInfo[DTCM_CACHEINFO_MAX];
 
 static CACHE *__cache = NULL;
 static UINT _cacheSize = 0;
@@ -133,20 +136,17 @@ static inline int cache_find_valid_block(CACHE *cache, BYTE drv, LBA_t sector)
 
     for (int i = 0; i < _cacheSize; i++)
     {
-        if (i < DTCM_CACHEINFO_MAX)
+#ifdef DTCM_CACHEINFO
+        if (i < DTCM_CACHEINFO_MAX &&
+            _cacheInfo[i].valid && _cacheInfo[i].pdrv == drv && _cacheInfo[i].sector == sector)
         {
-            if (_cacheInfo[i].valid && _cacheInfo[i].pdrv == drv && _cacheInfo[i].sector == sector)
-            {
-                return i;
-            }
+            return i;
         }
-
-        if (i >= DTCM_CACHEINFO_MAX)
+        else
+#endif
+        if (cache[i].valid && cache[i].pdrv == drv && cache[i].sector == sector)
         {
-            if (cache[i].valid && cache[i].pdrv == drv && cache[i].sector == sector)
-            {
-                return i;
-            }
+            return i;
         }
     }
     return -1;
@@ -210,12 +210,14 @@ void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src, B
     cache[free_block].sector = sector;
     cache[free_block].weight = weight;
 
+#ifdef DTCM_CACHEINFO
     if (free_block < DTCM_CACHEINFO_MAX)
     {
         _cacheInfo[free_block].valid = 1;
         _cacheInfo[free_block].pdrv = drv;
         _cacheInfo[free_block].sector = sector;
     }
+#endif
 
 #if SLIM_CACHE_STORE_CPY
     DC_FlushRange(src, FF_MAX_SS);
@@ -253,10 +255,12 @@ BOOL cache_invalidate_sector(CACHE *cache, BYTE drv, LBA_t sector)
     int i = -1;
     if ((i = cache_find_valid_block(cache, drv, sector)) != -1)
     {
+#ifdef DTCM_CACHEINFO
         if (i < DTCM_CACHEINFO_MAX)
         {
             _cacheInfo[i].valid = 0;
         }
+#endif
         cache[i].valid = 0;
         return true;
     }
@@ -274,6 +278,7 @@ BITMAP_PRIMITIVE cache_get_existence_bitmap(CACHE *cache, BYTE drv, LBA_t sector
     BITMAP_PRIMITIVE bitmap = 0;
     for (int i = 0; i < _cacheSize; i++)
     {
+#ifdef DTCM_CACHEINFO
         if (i < DTCM_CACHEINFO_MAX && _cacheInfo[i].valid && _cacheInfo[i].pdrv == drv)
         {
             LBA_t relativeSector = _cacheInfo[i].sector - sector;
@@ -281,7 +286,9 @@ BITMAP_PRIMITIVE cache_get_existence_bitmap(CACHE *cache, BYTE drv, LBA_t sector
                 continue;
             bitmap |= BIT_SET(relativeSector);
         }
-        else if (cache[i].valid && cache[i].pdrv == drv)
+        else
+#endif
+        if (cache[i].valid && cache[i].pdrv == drv)
         {
             LBA_t relativeSector = cache[i].sector - sector;
             if (relativeSector < 0 || relativeSector >= count)
