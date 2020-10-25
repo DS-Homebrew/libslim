@@ -714,48 +714,39 @@ static void st_qword (BYTE* ptr, QWORD val)	/* Store an 8-byte word in little-en
 /* Copy memory to memory */
 static void mem_cpy (void* dst, const void* src, UINT cnt)
 {
-/* --- BEGIN LIBSLIM PATCH: FEAT_FAST_MEM_FUNC --- */
-	MEMCOPY(dst, src, cnt);
-	// BYTE *d = (BYTE*)dst;
-	// const BYTE *s = (const BYTE*)src;
+	BYTE *d = (BYTE*)dst;
+	const BYTE *s = (const BYTE*)src;
 
-	// if (cnt != 0) {
-	// 	do {
-	// 		*d++ = *s++;
-	// 	} while (--cnt);
-	// }
-/* --- END LIBSLIM PATCH: FEAT_FAST_MEM_FUNC --- */
+	if (cnt != 0) {
+		do {
+			*d++ = *s++;
+		} while (--cnt);
+	}
 }
 
 
 /* Fill memory block */
 static void mem_set (void* dst, int val, UINT cnt)
 {
-/* --- BEGIN LIBSLIM PATCH: FEAT_FAST_MEM_FUNC --- */
-	MEMSET(dst, val, cnt);
-	// BYTE *d = (BYTE*)dst;
+	BYTE *d = (BYTE*)dst;
 
-	// do {
-	// 	*d++ = (BYTE)val;
-	// } while (--cnt);
-/* --- END LIBSLIM PATCH: FEAT_FAST_MEM_FUNC --- */
+	do {
+		*d++ = (BYTE)val;
+	} while (--cnt);
 }
 
 
 /* Compare memory block */
 static int mem_cmp (const void* dst, const void* src, UINT cnt)	/* ZR:same, NZ:different */
 {
-/* --- BEGIN LIBSLIM PATCH: FEAT_FAST_MEM_FUNC --- */
-	return MEMCMP(dst, src, cnt);
-	// const BYTE *d = (const BYTE *)dst, *s = (const BYTE *)src;
-	// int r = 0;
+	const BYTE *d = (const BYTE *)dst, *s = (const BYTE *)src;
+	int r = 0;
 
-	// do {
-	// 	r = *d++ - *s++;
-	// } while (--cnt && r == 0);
+	do {
+		r = *d++ - *s++;
+	} while (--cnt && r == 0);
 
-	// return r;
-/* --- END LIBSLIM PATCH: FEAT_FAST_MEM_FUNC --- */
+	return r;
 }
 
 
