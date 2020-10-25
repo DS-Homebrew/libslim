@@ -37,7 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 2 - Cache in heap memory is used, with working buffer in .bss
  * 
  */
-#define SLIM_USE_CACHE 2
+#define SLIM_USE_CACHE 1
 
 
 /**
@@ -79,7 +79,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * Must be 1 < SLIM_SECTORS_PER_CHUNK <= (sizeof(BITMAP_PRIMITIVE) * CHAR_BIT) 
  */ 
-#define SLIM_SECTORS_PER_CHUNK 8
+#define SLIM_SECTORS_PER_CHUNK 4
 
 /**
  * **YOU SHOULD NOT NEED TO CHANGE THIS OPTION**

@@ -128,13 +128,12 @@ Configures the size (in number of sectors) of the cache. By default, 64 sectors 
 
 #### `SLIM_CACHE_STORE_CPY`
 
-**Default:** `2` (BIOS copy)
+**Default:** `0` (memcpy)
 
 Configures the method to use to copy sectors to the cache. 
 
 * Setting to `0` will use a CPU memcpy.
 * Setting to `1` will use DMA copies.
-* Setting to `2` will use the `swiCopy` BIOS copy
 
 #### `SLIM_CHUNKED_READS`
 
