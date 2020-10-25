@@ -52,7 +52,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 1 - Uses DMA to store sectors
  * 2 - Uses NDMA to store sectors, on DSi, using CPU memcpy otherwise.
  */
-#define SLIM_CACHE_STORE_CPY 2
+#define SLIM_CACHE_STORE_CPY 0
 
 /**
  * This option configures how to read sectors
@@ -96,6 +96,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SECTORS_PER_CHUNK MAX_SECTORS_PER_CHUNK
 #else
 #define SECTORS_PER_CHUNK MAX(1, MIN(SLIM_SECTORS_PER_CHUNK, MAX_SECTORS_PER_CHUNK))
+#endif
+
+#if SLIM_CHUNKED_READS && (SECTORS_PER_CHUNK < SLIM_PREFETCH_AMOUNT)
+#error "Not enough scratch space will be allocated to support the specified prefetch amount."
 #endif
 
 #define MAX_SECTORS_PER_CHUNK (sizeof(BITMAP_PRIMITIVE) * CHAR_BIT)

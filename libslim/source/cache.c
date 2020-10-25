@@ -170,11 +170,7 @@ BOOL cache_load_sector(CACHE *cache, BYTE drv, LBA_t sector, BYTE *dst)
 #endif
     // Increase weight
     cache[i].weight += 1;
-
-    int oldIME = enterCriticalSection();
-    // Copy cache
     MEMCOPY(dst, &cache[i].data, FF_MAX_SS);
-    leaveCriticalSection(oldIME);
     return true;
 }
 
@@ -221,7 +217,6 @@ void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src, B
         _cacheInfo[free_block].sector = sector;
     }
 
-    int oldIME = enterCriticalSection();
 #if SLIM_CACHE_STORE_CPY
     DC_FlushRange(src, FF_MAX_SS);
     // Perform safe cache flush
@@ -248,7 +243,6 @@ void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src, B
 #else
     MEMCOPY(&cache[free_block].data, src, FF_MAX_SS);
 #endif
-    leaveCriticalSection(oldIME);
 }
 
 BOOL cache_invalidate_sector(CACHE *cache, BYTE drv, LBA_t sector)
