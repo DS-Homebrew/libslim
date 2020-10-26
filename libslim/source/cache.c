@@ -76,7 +76,7 @@ static DTCM_DATA CACHEINFO _cacheInfo[DTCM_CACHEINFO_MAX];
 
 typedef struct cache_s
 {
-    BYTE data[FF_MAX_SS] __attribute__((aligned(32)));
+    BYTE data[FF_MAX_SS] __attribute__((aligned(4)));
 
     // referential weight for GCLOCK
     WORD weight;
@@ -84,13 +84,29 @@ typedef struct cache_s
     BYTE valid;
     BYTE pdrv;
     LBA_t sector;
-} __attribute__((aligned(32))) CACHE;
+} __attribute__((aligned(4))) CACHE;
 
 static DTCM_DATA int _evictCounter = 0;
 
 static CACHE *__cache = NULL;
 static UINT _cacheSize = 0;
 static BOOL _cacheDisabled = false;
+
+void cache_cpy(const void *src, const void *dst);
+
+static void mem_cpy(void *dst, const void *src, UINT cnt)
+{
+    BYTE *d = (BYTE *)dst;
+    const BYTE *s = (const BYTE *)src;
+
+    if (cnt != 0)
+    {
+        do
+        {
+            *d++ = *s++;
+        } while (--cnt);
+    }
+}
 
 CACHE *cache_init(UINT cacheSize)
 {
@@ -146,7 +162,7 @@ static inline int cache_find_valid_block(CACHE *cache, BYTE drv, LBA_t sector)
         }
         else
 #endif
-        if (cache[i].valid && cache[i].pdrv == drv && cache[i].sector == sector)
+            if (cache[i].valid && cache[i].pdrv == drv && cache[i].sector == sector)
         {
             return i;
         }
@@ -172,7 +188,17 @@ BOOL cache_load_sector(CACHE *cache, BYTE drv, LBA_t sector, BYTE *dst)
 #endif
     // Increase weight
     cache[i].weight += 1;
-    MEMCOPY(dst, &cache[i].data, FF_MAX_SS);
+    int oldIME = enterCriticalSection();
+    if (!(((uint32_t)dst) & 0x3))
+    {
+        // dst is aligned
+        cache_cpy(&cache[i].data, dst);
+    }
+    else
+    {
+        mem_cpy(dst, &cache[i].data, FF_MAX_SS);
+    }
+    leaveCriticalSection(oldIME);
     return true;
 }
 
@@ -245,7 +271,9 @@ void cache_store_sector(CACHE *cache, BYTE drv, LBA_t sector, const BYTE *src, B
         MEMCOPY(&cache[free_block].data, src, FF_MAX_SS);
     }
 #else
-    MEMCOPY(&cache[free_block].data, src, FF_MAX_SS);
+    int oldIME = enterCriticalSection();
+    cache_cpy(src, &(cache[free_block].data));
+    leaveCriticalSection(oldIME);
 #endif
 }
 
@@ -290,7 +318,7 @@ BITMAP_PRIMITIVE cache_get_existence_bitmap(CACHE *cache, BYTE drv, LBA_t sector
         }
         else
 #endif
-        if (cache[i].valid && cache[i].pdrv == drv)
+            if (cache[i].valid && cache[i].pdrv == drv)
         {
             LBA_t relativeSector = cache[i].sector - sector;
             if (relativeSector < 0 || relativeSector >= count)

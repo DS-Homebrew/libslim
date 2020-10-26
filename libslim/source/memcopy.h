@@ -8,4 +8,5 @@
 #define MEMCOPY(dst, src, sz)   memcpy(dst, src, sz)
 #define MEMSET(dst, val, sz)    memset(dst, val, sz)
 #define MEMCLR(dst, sz)         MEMSET(dst, 0, sz)
+
 #endif

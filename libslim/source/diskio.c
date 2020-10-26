@@ -111,7 +111,7 @@ static CACHE *__cache;
 #if SLIM_USE_CACHE == 1
 static BYTE *working_buf;
 #elif SLIM_USE_CACHE == 2
-static BYTE working_buf[FF_MAX_SS * SECTORS_PER_CHUNK];
+static BYTE working_buf[FF_MAX_SS * SECTORS_PER_CHUNK] __attribute__((aligned(4)));
 #endif
 /*-----------------------------------------------------------------------*/
 /* Initialize a Drive                                                    */
