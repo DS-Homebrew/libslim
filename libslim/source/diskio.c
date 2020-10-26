@@ -312,6 +312,7 @@ DRESULT disk_read(
 			if (!(sectorsToRead - chunkOffset))
 			{
 				res = RES_OK;
+				sectorOffset += sectorsToRead;
 				continue;
 			}
 
