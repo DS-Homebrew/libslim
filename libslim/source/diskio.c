@@ -251,7 +251,11 @@ DRESULT disk_read(
 #endif
 				return RES_OK;
 			}
+#ifdef DEBUG_NOGBA
 
+			sprintf(buf, "LU1: s: %ld, n: %d", baseSector, SLIM_PREFETCH_AMOUNT + 1);
+			nocashMessage(buf);
+#endif
 			// This is a single sector read.
 			// Single sector reads are more likely to be reused
 			// so we assign higher weights
@@ -260,7 +264,7 @@ DRESULT disk_read(
 			if (prefetchOk == RES_OK)
 			{
 #ifdef DEBUG_NOGBA
-				sprintf(buf, "LU1: s: %ld, n: %d", baseSector, SLIM_PREFETCH_AMOUNT + 1);
+				sprintf(buf, "LU1 complete");
 				nocashMessage(buf);
 #endif
 				// single sector reads are more likely to be reused
@@ -274,14 +278,14 @@ DRESULT disk_read(
 				}
 				return RES_OK;
 			}
-
-			res = disk_read_internal(drv, working_buf, baseSector, 1);
-			cache_store_sector(__cache, drv, baseSector, working_buf, 2);
-			MEMCOPY(buff, working_buf, FF_MAX_SS);
 #ifdef DEBUG_NOGBA
 			sprintf(buf, "LU1: s: %ld, n: %d, failed prefetch", baseSector, 1);
 			nocashMessage(buf);
 #endif
+			res = disk_read_internal(drv, working_buf, baseSector, 1);
+			cache_store_sector(__cache, drv, baseSector, working_buf, 2);
+			MEMCOPY(buff, working_buf, FF_MAX_SS);
+
 			return res;
 		}
 
@@ -308,14 +312,20 @@ DRESULT disk_read(
 #endif
 				chunkOffset++;
 			}
+			sprintf(buf, "load: cached load finish, i: %d", chunkOffset);
+			nocashMessage(buf);
 
 			if (!(sectorsToRead - chunkOffset))
 			{
+				sprintf(buf, "load: complete, i: %d", chunkOffset);
+				nocashMessage(buf);
 				res = RES_OK;
 				sectorOffset += sectorsToRead;
 				continue;
 			}
 
+			sprintf(buf, "LU: s: %ld, i: %d, n: %d", baseSector + sectorOffset, chunkOffset, sectorsToRead - chunkOffset);
+			nocashMessage(buf);
 			res = disk_read_internal(drv, working_buf, baseSector + sectorOffset + chunkOffset,
 									 sectorsToRead - chunkOffset);
 			if (res != RES_OK)
@@ -326,7 +336,8 @@ DRESULT disk_read(
 #endif
 				return res;
 			}
-			
+			sprintf(buf, "LU complete");
+			nocashMessage(buf);
 			MEMCOPY(&buff[(chunkOffset + sectorOffset) * FF_MAX_SS], working_buf, (sectorsToRead - chunkOffset) * FF_MAX_SS);
 
 			// Cache read sectors
