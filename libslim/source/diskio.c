@@ -46,6 +46,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <stdlib.h>
 
+#include <nds/bios.h>
 #include <nds/disc_io.h>
 #include <nds/arm9/cache.h>
 #include <nds/interrupts.h>
@@ -170,6 +171,7 @@ static inline DRESULT disk_read_internal(
 	if ((disc_io = get_disc_io(drv)) != NULL)
 	{
 		DRESULT res = disc_io->readSectors(sector, count, buff) ? RES_OK : RES_ERROR;
+		swiDelay(256);
 		return res;
 	}
 	return RES_PARERR;
@@ -373,6 +375,8 @@ DRESULT disk_write(
 	if ((disc_io = get_disc_io(drv)) != NULL)
 	{
 		DRESULT res = disc_io->writeSectors(sector, count, buff) ? RES_OK : RES_ERROR;
+		swiDelay(256);
+
 #if SLIM_USE_CACHE
 		for (BYTE i = 0; i < count; i++)
 		{

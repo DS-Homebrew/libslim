@@ -196,7 +196,7 @@ BOOL cache_load_sector(CACHE *cache, BYTE drv, LBA_t sector, BYTE *dst)
     }
     else
     {
-        memcpy(dst, &cache[i].data, FF_MAX_SS);
+        mem_cpy(dst, &cache[i].data, FF_MAX_SS);
     }
     leaveCriticalSection(oldIME);
     return true;

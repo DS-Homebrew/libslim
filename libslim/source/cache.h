@@ -28,6 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __SLIM_CACHE_H__
 #define __SLIM_CACHE_H__
 #include "ff.h"
+#include <assert.h>
+#include <limits.h>
 
 /**
  * This option defines how the cache will be implemented
@@ -42,7 +44,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * This option defines the default cache size in number of sectors
  */
-#define SLIM_CACHE_SIZE 64
+#define SLIM_CACHE_SIZE 256
 
 /**
  * This option defines whether or not to use DMA to store sectors to the cache
@@ -50,6 +52,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 0 - Uses a CPU memcpy to store sectors
  * 1 - Uses DMA to store sectors
  * 2 - Uses NDMA to store sectors, on DSi, using CPU memcpy otherwise.
+ * 
+ * Do not use options 1 or 2. They are experimental and may cause SD card corruption.
  */
 #define SLIM_CACHE_STORE_CPY 0
 
@@ -70,7 +74,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 0 - Single sector reads read exactly one sector on a single sector read
  * > 1 - Single sector reads trigger a prefetch of SLIM_PREFETCH_AMOUNT extra sectors into the cache
  */
-#define SLIM_PREFETCH_AMOUNT 0
+#define SLIM_PREFETCH_AMOUNT 7
 
 /**
  * This configures the max number of sectors fetched from the SD card per chunk.
@@ -78,7 +82,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * Must be 1 < SLIM_SECTORS_PER_CHUNK <= (sizeof(BITMAP_PRIMITIVE) * CHAR_BIT) 
  */ 
-#define SLIM_SECTORS_PER_CHUNK 0
+#define SLIM_SECTORS_PER_CHUNK 8
 
 /**
  * **YOU SHOULD NOT NEED TO CHANGE THIS OPTION**
@@ -87,9 +91,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Changes the size of the chunk used.
  */
 #define BITMAP_PRIMITIVE BYTE
+#define BITMAP_PRIMITIVE_SIZE 1
+
+static_assert(BITMAP_PRIMITIVE_SIZE == sizeof(BITMAP_PRIMITIVE), "Invalid Primitive Size");
+
+#define MAX_SECTORS_PER_CHUNK (BITMAP_PRIMITIVE_SIZE * CHAR_BIT)
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
 
 #if !SLIM_SECTORS_PER_CHUNK
 #define SECTORS_PER_CHUNK MAX_SECTORS_PER_CHUNK
@@ -97,11 +107,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SECTORS_PER_CHUNK MAX(1, MIN(SLIM_SECTORS_PER_CHUNK, MAX_SECTORS_PER_CHUNK))
 #endif
 
-#if SLIM_CHUNKED_READS && (SECTORS_PER_CHUNK < SLIM_PREFETCH_AMOUNT)
-#error "Not enough scratch space will be allocated to support the specified prefetch amount."
+#if SLIM_CHUNKED_READS 
+static_assert(SECTORS_PER_CHUNK > SLIM_PREFETCH_AMOUNT, "Not enough scratch space will be allocated to support the specified prefetch amount.");
 #endif
 
-#define MAX_SECTORS_PER_CHUNK (sizeof(BITMAP_PRIMITIVE) * CHAR_BIT)
 
 #if SLIM_USE_CACHE && FF_MAX_SS != FF_MIN_SS
     #error "Cache can only be used for fixed sector size."
