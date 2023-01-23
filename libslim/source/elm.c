@@ -232,7 +232,7 @@ int _ELM_open_r(struct _reent *r, void *fileStruct, const char *path, int flags,
     elm_error = f_open(fp, p, ff_flags);
 
 #if FF_USE_FASTSEEK
-    if ((flags & O_RDONLY) && elm_error == FR_OK) // Enable fast seek if read only
+    if (((flags & O_RDONLY) || (flags == O_RDONLY)) && elm_error == FR_OK) // Enable fast seek if read only
     {
         FSIZE_t ptr = f_tell(fp);
 
