@@ -104,7 +104,7 @@
 /* The FF_USE_LFN switches the support for LFN (long file name).
 /
 /   0: Disable LFN. FF_MAX_LFN has no effect.
-/   1: Enable LFN with static  working buffer on the BSS. Always NOT thread-safe.
+/   1: Enable LFN with static working buffer on the BSS. Always NOT thread-safe.
 /   2: Enable LFN with dynamic working buffer on the STACK.
 /   3: Enable LFN with dynamic working buffer on the HEAP.
 /
@@ -112,7 +112,7 @@
 /  requiers certain internal working buffer occupies (FF_MAX_LFN + 1) * 2 bytes and
 /  additional (FF_MAX_LFN + 44) / 15 * 32 bytes when exFAT is enabled.
 /  The FF_MAX_LFN defines size of the working buffer in UTF-16 code unit and it can
-/  be in range of 12 to 255. It is recommended to be set it 255 to fully support LFN
+/  be in range of 12 to 255. It is recommended to be set 255 to fully support LFN
 /  specification.
 /  When use stack for the working buffer, take care on stack overflow. When use heap
 /  memory for the working buffer, memory management functions, ff_memalloc() and
@@ -152,7 +152,7 @@
 */
 
 
-#define FF_FS_RPATH		1
+#define FF_FS_RPATH		2
 /* This option configures support for relative path.
 /
 /   0: Disable relative path and remove related functions.

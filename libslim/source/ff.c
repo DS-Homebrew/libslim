@@ -3911,8 +3911,7 @@ FRESULT f_open (
 				}
 				fp->clust = clst;
 				if (res == FR_OK && ofs % SS(fs)) {	/* Fill sector buffer if not on the sector boundary */
-					sc = clst2sect(fs, clst);
-					if (sc == 0) {
+					if ((sc = clst2sect(fs, clst)) == 0) {
 						res = FR_INT_ERR;
 					} else {
 						fp->sect = sc + (DWORD)(ofs / SS(fs));
